@@ -7,6 +7,7 @@
 #include "mg_rayLib/rendering/debugRenderer.h"
 #include "mg_rayLib/rendering/dxRenderer/mesh.h"
 #include "mg_rayLib/rendering/dxRenderer/surfaceShader.h"
+#include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -26,6 +27,7 @@ class D3DClass;
 class Camera3dPivot;
 class Mesh;
 class SurfaceShader;
+class ImplicitSurface;
 
 class Dx11DebugRenderer : public rendering::DebugRenderer {
 
@@ -33,6 +35,7 @@ public:
   Dx11DebugRenderer() = default;
   virtual ~Dx11DebugRenderer() = default;
   bool initialize(foundation::Input* input,core::GlobalSettings *settings)  override;
+  bool initializeDebugScene(core::Scene* scene) override;
   foundation::Window *getWindow() const  override{ return m_window; }
   // main render loop
   void frame() override;
@@ -55,6 +58,7 @@ private:
   std::unique_ptr<Mesh> sphere;
   std::unique_ptr<Mesh> plane;
   std::unique_ptr<SurfaceShader> m_shader;
+  std::vector<ImplicitSurface> m_implicitMeshes;
 
   int m_oldMouseX;
   int m_oldMouseY;

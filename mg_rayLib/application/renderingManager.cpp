@@ -67,6 +67,7 @@ void RenderingManager::loadSceneFromFile(const std::string &path) {
 
   m_scene = new core::Scene();
   m_scene->loadSceneFromDescription(path);
+  m_debugRenderer->initializeDebugScene(m_scene);
 }
 } // namespace application
 } // namespace mg_ray

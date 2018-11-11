@@ -19,16 +19,14 @@ float4 main(PixelInputType input, bool isFrontFace : SV_IsFrontFace) : SV_TARGET
 
   float4 eyeDir = normalize(cameraPosition - input.wolrdPosition);
   float4 normal = input.normal;
-  if (!isFrontFace)
-  {
-	  normal = -normal;
-  }
-  float diffuseAmount = max(dot(eyeDir, normal), 0.0f);
+  float4 lightDir = -normalize(lightPosition);
+  
+  float diffuseAmount = max(dot(-lightDir, normal), 0.0f);
   float4 outColor = diffuse * diffuseAmount;
   outColor += ambient;
 
   // computing specular
-  float4 reflected = normalize(reflect(-eyeDir, input.normal));
+  float4 reflected = normalize(reflect(lightDir, input.normal));
   // need to use proper light and eye dir
   float4 specularAmount = pow(max(dot(reflected, eyeDir), 0.0f), shiness);
   outColor += specular * specularAmount;

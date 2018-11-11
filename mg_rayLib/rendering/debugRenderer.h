@@ -7,6 +7,7 @@ class Input;
 }
 namespace core {
 struct GlobalSettings;
+class Scene;
 }
 namespace rendering {
 
@@ -20,6 +21,7 @@ public:
     }
   }
   virtual bool initialize(foundation::Input* input,core::GlobalSettings *settings) = 0;
+  virtual bool initializeDebugScene(core::Scene* scene) =0;
   virtual foundation::Window *getWindow() const = 0;
   // main render loop
   virtual void frame() = 0;

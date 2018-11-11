@@ -25,7 +25,8 @@
     returnValue = IMPLICIT_MESH_TYPE::INVALID;                                 \
   } else {                                                                     \
     returnValue = found->second;                                               \
-  }
+  }                                                                            \
+  assert(returnValue != IMPLICIT_MESH_TYPE::INVALID);
 
 #define NAME_TO_MATERIAL_TYPE(jobj, returnValue)                               \
   const std::string stype =                                                    \
@@ -37,7 +38,8 @@
     returnValue = MATERIAL_TYPE::INVALID;                                      \
   } else {                                                                     \
     returnValue = found->second;                                               \
-  }
+  }                                                                            \
+  assert(returnValue != MATERIAL_TYPE::INVALID);
 
 template <>
 inline mg_ray::core::DataFloat4
@@ -82,11 +84,11 @@ const std::unordered_map<std::string, SHAPE_TYPE> Scene::m_nameToShapeType{
     {"implicit", SHAPE_TYPE::IMPLICIT}, {"polygons", SHAPE_TYPE::POLYGONS}};
 const std::unordered_map<std::string, IMPLICIT_MESH_TYPE>
     Scene::m_nameToImplicitType{{"sphere", IMPLICIT_MESH_TYPE::SPHERE},
-                         {"plane", IMPLICIT_MESH_TYPE::PLANE}};
+                                {"plane", IMPLICIT_MESH_TYPE::PLANE}};
 const std::unordered_map<std::string, MATERIAL_TYPE>
     Scene::m_nameToMaterialType{{"diffuse", MATERIAL_TYPE::DIFFUSE},
-                         {"metal", MATERIAL_TYPE::METAL},
-                         {"dialectric", MATERIAL_TYPE::DIALECTRIC}};
+                                {"metal", MATERIAL_TYPE::METAL},
+                                {"dialectric", MATERIAL_TYPE::DIALECTRIC}};
 
 void Scene::loadSceneFromDescription(const std::string &path) {
 
@@ -120,8 +122,10 @@ void Scene::loadSceneFromDescription(const std::string &path) {
 
 void Scene::processImplicitShape(const nlohmann::json &jobj) {
 
+  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_IMPLICIT_DATA);
+  auto impDataj = jobj[SCENE_KEY_IMPLICIT_DATA];
   IMPLICIT_MESH_TYPE type;
-  NAME_TO_IMPLICIT_MESH_TYPE(jobj, type);
+  NAME_TO_IMPLICIT_MESH_TYPE(impDataj, type);
   switch (type) {
   case (IMPLICIT_MESH_TYPE::SPHERE): {
     processImplicitSphere(jobj);
@@ -161,8 +165,8 @@ void Scene::processImplicitSphere(const nlohmann::json &jobj) {
   m_implicitMeshes.emplace_back(
       ImplicitSceneMesh{IMPLICIT_MESH_TYPE::SPHERE,
                         {pos[0].get<float>(), pos[1].get<float>(),
-                         pos[2].get<float>(), radius[0].get<float>()},
-                        processSceneMaterial(jobj)});
+                         pos[2].get<float>(), radius.get<float>()},
+                        processSceneMaterial(jobj[SCENE_KEY_MATERIAL])});
 }
 
 void Scene::processImplicitPlane(const nlohmann::json &jobj) {
@@ -179,8 +183,8 @@ void Scene::processImplicitPlane(const nlohmann::json &jobj) {
   m_implicitMeshes.emplace_back(
       ImplicitSceneMesh{IMPLICIT_MESH_TYPE::PLANE,
                         {normal[0].get<float>(), normal[1].get<float>(),
-                         normal[2].get<float>(), pos[0].get<float>()},
-                        processSceneMaterial(jobj)});
+                         normal[2].get<float>(), pos.get<float>()},
+                        processSceneMaterial(jobj[SCENE_KEY_MATERIAL])});
 }
 void Scene::processPolygonShape(const nlohmann::json &jobj) {
   assert(0 && "processing of polygon shape not implemented yet");

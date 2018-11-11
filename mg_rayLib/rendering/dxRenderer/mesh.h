@@ -12,6 +12,19 @@ namespace mg_ray {
 namespace rendering {
 namespace dx11 {
 
+struct Dx11Material 
+{
+  DirectX::XMFLOAT4 cameraPosition;
+  DirectX::XMFLOAT4 lightPosition;
+  DirectX::XMFLOAT4 ambient;
+  DirectX::XMFLOAT4 specular;
+  DirectX::XMFLOAT4 diffuse;
+  float shiness;
+  float padding1;
+  float padding2;
+  float padding3;
+};
+
 class SurfaceShader;
 class Camera3dPivot;
 class Mesh {
@@ -35,8 +48,8 @@ public:
   int m_stride;
   std::vector<unsigned int> m_cpu_vtx_data;
   SurfaceShader* m_shader;
-  ID3D11Buffer* matBuffer;
 };
+
 } // namespace dx11
 } // namespace rendering
 } // namespace mg_ray

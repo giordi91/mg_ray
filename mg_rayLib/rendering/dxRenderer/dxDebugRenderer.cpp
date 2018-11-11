@@ -1,9 +1,11 @@
 #include "dxDebugRenderer.h"
 #include "mg_rayLib/core/globalSettings.h"
+#include "mg_rayLib/core/scene.h"
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
 #include "mg_rayLib/foundation/input.h"
 #include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
+#include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
 #include <d3d11.h>
 
 namespace mg_ray {
@@ -69,6 +71,55 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
   return true;
 }
 
+bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
+  int count = scene->m_implicitMeshes.size();
+  for (int i = 0; i < count; ++i) {
+    const core::ImplicitSceneMesh &sceneM = scene->m_implicitMeshes[i];
+    if (sceneM.type == core::IMPLICIT_MESH_TYPE::SPHERE) {
+      auto translate = DirectX::XMMatrixTranslation(
+          sceneM.data1.x, sceneM.data1.y, sceneM.data1.z);
+      auto scale = DirectX::XMMatrixScaling(sceneM.data1.w, sceneM.data1.w,
+                                            sceneM.data1.w);
+      auto transform = DirectX::XMMatrixMultiply(scale, translate);
+      ImplicitSurface surf;
+      surf.initialize(m_d3dClass->getDevice(),sphere.get(), transform, sceneM.material);
+      m_implicitMeshes.push_back(surf);
+    } else {
+      DirectX::XMFLOAT4 up{0.0f, 1.0f, 0.0f, 0.0f};
+      DirectX::XMFLOAT4 normal{sceneM.data1.x, sceneM.data1.y, sceneM.data1.z,
+                               0.0f};
+
+      DirectX::XMVECTOR upv =
+          DirectX::XMVector3Normalize(DirectX::XMLoadFloat4(&up));
+      DirectX::XMVECTOR normalv =
+          DirectX::XMVector3Normalize(DirectX::XMLoadFloat4(&normal));
+
+	  //lets perform a scale
+      auto transform = DirectX::XMMatrixScaling(100.0f,100.0f,100.0f);
+
+      auto dot = DirectX::XMVector3Dot(upv, normalv);
+      // check whether or not we need to rotate
+      if ((dot.m128_f32[0] - 1.0f) > 0.001f) {
+        auto cross =
+            DirectX::XMVector4Normalize(DirectX::XMVector3Cross(upv, normalv));
+        auto anglev = DirectX::XMVector4AngleBetweenVectors(upv, normalv);
+        float angle = anglev.m128_f32[0];
+
+        auto rotation = DirectX::XMMatrixRotationAxis(cross, angle);
+        auto translate = DirectX::XMMatrixTranslation(
+            normal.x * sceneM.data1.w, normal.y * sceneM.data1.w,
+            normal.z * sceneM.data1.w);
+        transform = DirectX::XMMatrixMultiply(rotation, translate);
+      }
+
+      ImplicitSurface surf;
+      surf.initialize(m_d3dClass->getDevice(),plane.get(), transform, sceneM.material);
+      m_implicitMeshes.push_back(surf);
+    }
+  }
+  return true;
+};
+
 void Dx11DebugRenderer::frame() {
 
   m_d3dClass->beginScene(0.5f, 0.5f, 0.5f, 1.0f);
@@ -80,8 +131,11 @@ void Dx11DebugRenderer::render() {
   handleCameraMovement();
   m_camera->Render();
   // draw debug geometries to make sure everything works
-  m_camera->setCameraMatrixToShader(sphere->transform);
-  sphere->render(m_d3dClass->GetDeviceContext(), m_camera);
+  //sphere->render(m_d3dClass->GetDeviceContext(), m_camera);
+  for (int i = 0; i < m_implicitMeshes.size(); ++i)
+  {
+	  m_implicitMeshes[i].render(m_d3dClass->GetDeviceContext(), m_camera);
+  }
 }
 void Dx11DebugRenderer::loadMeshes() {
   sphere = std::make_unique<Mesh>();

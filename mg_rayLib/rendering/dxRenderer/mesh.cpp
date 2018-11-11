@@ -11,18 +11,6 @@ namespace mg_ray {
 namespace rendering {
 namespace dx11 {
 
-struct Material 
-{
-  DirectX::XMFLOAT4 cameraPosition;
-  DirectX::XMFLOAT4 lightPosition;
-  DirectX::XMFLOAT4 ambient;
-  DirectX::XMFLOAT4 specular;
-  DirectX::XMFLOAT4 diffuse;
-  float shiness;
-  float padding1;
-  float padding2;
-  float padding3;
-};
 
 void Mesh::load(ID3D11Device *device, tinyobj::attrib_t &attr,
                 tinyobj::shape_t &shape, SurfaceShader *shader) {
@@ -76,9 +64,6 @@ void Mesh::load(ID3D11Device *device, tinyobj::attrib_t &attr,
   m_indexBuffer = getIndexBuffer(device, render_index_size * sizeof(int),
                                  render_index.data());
 
-  //temp create material buffer
-  matBuffer = getConstantBuffer(device, sizeof(Material));
-
 }
 
 void Mesh::loadFromFile(ID3D11Device *device, const std::string &path,
@@ -93,49 +78,6 @@ void Mesh::loadFromFile(ID3D11Device *device, const std::string &path,
 void Mesh::render(ID3D11DeviceContext *deviceContext, Camera3dPivot* camera) {
 
   m_shader->render();
-  //setup the material
-  Material mat;
-  mat.ambient.x = 0.1;
-  mat.ambient.y = 0.1;
-  mat.ambient.z = 0.1;
-  DirectX::XMFLOAT3 camPos = camera->getPosition();;
-  mat.cameraPosition.x = camPos.x;
-  mat.cameraPosition.y = camPos.y;
-  mat.cameraPosition.z = camPos.z;
-  mat.cameraPosition.w = 1.0f;
-
-  mat.lightPosition.x = 10.0f;
-  mat.lightPosition.y = 10.0f;
-  mat.lightPosition.z = 10.0f;
-  mat.lightPosition.w = 1.0f;
-
-  mat.specular.x = 1.0f;
-  mat.specular.y = 1.0f;
-  mat.specular.z = 1.0f;
-  mat.specular.w = 0.0f;
-
-  mat.diffuse.x = 0.8f;
-  mat.diffuse.y = 0.0f;
-  mat.diffuse.z = 0.0f;
-  mat.specular.w = 0.0f;
-
-  mat.shiness = 100.0f;
-
-  HRESULT result;
-  D3D11_MAPPED_SUBRESOURCE mappedResource;
-  ObjectBufferDef *dataPtr;
-  unsigned int bufferNumber;
-
-  result = deviceContext->Map(matBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0,
-                            &mappedResource);
-  if (FAILED(result)) {
-    assert(0);
-    return;
-  }
-  memcpy(mappedResource.pData, &mat, sizeof(Material));
-  deviceContext->Unmap(matBuffer, 0);
-
-  deviceContext->PSSetConstantBuffers(0, 1, &matBuffer);
 
 
 
