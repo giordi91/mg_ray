@@ -1,6 +1,6 @@
 #pragma once
 #include "mg_rayLib/core/globalSettings.h"
-#include <memory>
+#include <string>
 
 namespace mg_ray {
 namespace foundation {
@@ -9,6 +9,7 @@ class Input;
 }
 namespace core {
 class RenderingContext;
+class Scene;
 }
 namespace rendering
 {
@@ -21,6 +22,7 @@ public:
   RenderingManager(core::GlobalSettings &settings) : m_settings(settings){};
   // this is the real entry point, here we initialize everything needed
   bool initialize();
+  void loadSceneFromFile(const std::string& path);
   void run();
 private:
 #ifdef WIN32
@@ -31,6 +33,7 @@ private:
   core::GlobalSettings m_settings;
   rendering::DebugRenderer* m_debugRenderer;
   foundation::Input* m_input;
+  core::Scene* m_scene;
 
 
 

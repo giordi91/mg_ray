@@ -1,16 +1,19 @@
 #include "renderingManager.h"
 #ifdef WIN32
-#include "mg_rayLib/foundation/MSWindows/input.h"
+#include "mg_rayLib/foundation/input.h"
 #include "mg_rayLib/rendering/dxRenderer/dxDebugRenderer.h"
 #endif
+
+#include "mg_rayLib/core/scene.h"
+
 namespace mg_ray {
 namespace application {
 bool RenderingManager::initialize() {
 
   m_input = new foundation::Input();
 #ifdef WIN32
-  auto* winRenderer  = new rendering::dx11::Dx11DebugRenderer();
-  winRenderer->initialize(m_input,&m_settings);
+  auto *winRenderer = new rendering::dx11::Dx11DebugRenderer();
+  winRenderer->initialize(m_input, &m_settings);
   m_debugRenderer = winRenderer;
 #else
   assert(0);
@@ -58,6 +61,12 @@ void RenderingManager::MSWindowsRenderLoop() {
       m_debugRenderer->frame();
     }
   }
+}
+
+void RenderingManager::loadSceneFromFile(const std::string &path) {
+
+  m_scene = new core::Scene();
+  m_scene->loadSceneFromDescription(path);
 }
 } // namespace application
 } // namespace mg_ray

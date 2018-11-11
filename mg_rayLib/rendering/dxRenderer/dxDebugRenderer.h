@@ -32,8 +32,8 @@ class Dx11DebugRenderer : public rendering::DebugRenderer {
 public:
   Dx11DebugRenderer() = default;
   virtual ~Dx11DebugRenderer() = default;
-  virtual bool initialize(foundation::Input* input,core::GlobalSettings *settings) ;
-  inline const foundation::Window *getWindow() const { return m_window; }
+  bool initialize(foundation::Input* input,core::GlobalSettings *settings)  override;
+  foundation::Window *getWindow() const  override{ return m_window; }
   // main render loop
   void frame() override;
 
@@ -47,7 +47,6 @@ private:
 
 private:
   foundation::DxWindow *m_window = nullptr;
-  core::GlobalSettings *m_settings;
   D3DClass *m_d3dClass;
   ID3D11Device *m_device;
   ID3D11DeviceContext *m_deviceContext;
@@ -56,7 +55,6 @@ private:
   std::unique_ptr<Mesh> sphere;
   std::unique_ptr<Mesh> plane;
   std::unique_ptr<SurfaceShader> m_shader;
-  foundation::Input* m_input;
 
   int m_oldMouseX;
   int m_oldMouseY;

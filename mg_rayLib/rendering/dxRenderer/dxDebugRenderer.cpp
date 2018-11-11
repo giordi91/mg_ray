@@ -1,7 +1,7 @@
 #include "dxDebugRenderer.h"
 #include "mg_rayLib/core/globalSettings.h"
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
-#include "mg_rayLib/foundation/MSWindows/input.h"
+#include "mg_rayLib/foundation/input.h"
 #include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
 #include <d3d11.h>
