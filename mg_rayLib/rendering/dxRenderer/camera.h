@@ -26,7 +26,7 @@ public:
   Camera3dPivot(D3DClass *d3dClass, float width, float height, float nearPlane,
                 float farPlane);
   ~Camera3dPivot();
-  inline void setSize(int width, int height) {
+  inline void setSize(float width, float height) {
     m_width = width, m_height = height;
   }
   // virtual void setCameraMatrixToShader(DirectX::XMMATRIX modelMatrix);
@@ -65,7 +65,7 @@ public:
   void Render() {
     m_viewMatrix = DirectX::XMMatrixLookAtLH(posV, lookAtPosV, upVector);
   }
-  DirectX::XMMATRIX getProjCamera(int screenWidth, int screenHeight) {
+  DirectX::XMMATRIX getProjCamera(float screenWidth, float screenHeight) {
     constexpr float fieldOfView = DirectX::XM_PI / 4.0f;
     float screenAspect = (float)screenWidth / (float)screenHeight;
 

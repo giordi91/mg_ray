@@ -39,7 +39,6 @@ inline ID3D11Buffer *getVertexBuffer(ID3D11Device *device, int dataSizeInByte,
 
 inline ID3D11Buffer *
 getVertexBufferDynamic(ID3D11Device *device, int dataSizeInByte, void *data,
-                       D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
                        int extraBindFlags = 0, int miscFlags = 0) {
 
   D3D11_BUFFER_DESC vertexBufferDesc;

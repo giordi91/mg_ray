@@ -26,7 +26,7 @@ public:
   ~D3DClass() = default;
   bool createDepthStencil(int screenWidth, int screenHeight);
   bool setTransparency();
-  bool initialize(int, int, bool, HWND, bool, float, float, D3DVendor vendor);
+  bool initialize(int width, int height, bool vsync, HWND window, D3DVendor vendor);
   void cleanup();
   void blitToRenderTarget(ID3D11Texture2D *texture);
   void setViewport(int screenW, int screenH) {

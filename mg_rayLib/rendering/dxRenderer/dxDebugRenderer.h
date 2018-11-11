@@ -19,6 +19,7 @@ struct GlobalSettings;
 namespace rendering {
 namespace dx11 {
 class D3DClass;
+class Camera3dPivot;
 
 class Dx11DebugRenderer : public rendering::DebugRenderer {
 
@@ -38,6 +39,7 @@ private:
   D3DClass* m_d3dClass;
   ID3D11Device* m_device;
   ID3D11DeviceContext* m_deviceContext;
+  Camera3dPivot* m_camera;
 };
 
 } // namespace dx11

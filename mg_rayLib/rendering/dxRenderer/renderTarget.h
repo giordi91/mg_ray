@@ -12,9 +12,9 @@ class RenderTarget {
 public:
   RenderTarget() = default;
   bool init(D3DClass *device, int width, int height, bool hasDepth, bool hdr);
-  void bindAsTexture(ID3D11DeviceContext *deviceContext, int slot,
+  void bindAsTexture( int slot,
                      bool useDepth);
-  void bindAsRT(ID3D11DeviceContext *deviceContext);
+  void bindAsRT();
   void bindAsRTWithExternalDepth(ID3D11DeviceContext *deviceContext,
                                  ID3D11DepthStencilView *depth);
   ID3D11RenderTargetView **getRTView() { return &m_renderingTargetView; }

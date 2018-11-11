@@ -1,6 +1,7 @@
 #include "dxDebugRenderer.h"
 #include "mg_rayLib/core/globalSettings.h"
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
+#include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
 #include <d3d11.h>
 
@@ -43,12 +44,17 @@ bool Dx11DebugRenderer::initialize(core::GlobalSettings *settings) {
   m_window->initialize(m_settings->width, m_settings->height, m_settings->name);
   m_d3dClass = new D3DClass();
 
-  m_d3dClass->initialize(m_settings->width, m_settings->height, 0 /*no v-sync*/,
-                         m_window->getHWND(), 0 /*no full screen*/,
-                         m_settings->nearPlane, m_settings->farPlane,
+  m_d3dClass->initialize(m_settings->width, m_settings->height, m_settings->vsync,
+                         m_window->getHWND(),
                          D3DVendor::ALL);
   m_deviceContext = m_d3dClass->GetDeviceContext();
   m_device = m_d3dClass->getDevice();
+
+  // create the camera
+  m_camera = new Camera3dPivot(m_d3dClass, static_cast<float>(settings->width),
+                               static_cast<float>(settings->height),
+                               settings->nearPlane, settings->farPlane);
+
   return true;
 }
 

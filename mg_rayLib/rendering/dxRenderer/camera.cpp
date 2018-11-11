@@ -114,7 +114,7 @@ void Camera3dPivot::setCameraMatrixToShader(DirectX::XMMATRIX modelMatrix) {
   // Set the position of the constant buffer in the vertex shader.
   bufferNumber = 0;
 
-  // Finanly set the constant buffer in the vertex shader with the updated
+  // Finally set the constant buffer in the vertex shader with the updated
   // values.
   dev_context->VSSetConstantBuffers(bufferNumber, 1, &m_cameraBuffer);
 }

@@ -13,9 +13,8 @@ bool RenderTarget::init(D3DClass *d3dClass, int width, int height,
   return createRenderTarget(d3dClass->getDevice(), width, height, hasDepth,
                             hdr);
 }
-void RenderTarget::bindAsTexture(ID3D11DeviceContext *deviceContext, int slot,
-                                 bool useDepth) {}
-void RenderTarget::bindAsRT(ID3D11DeviceContext *deviceContext) {
+void RenderTarget::bindAsTexture(int slot, bool useDepth) {}
+void RenderTarget::bindAsRT() {
   m_d3dClass->setRenderTarget(m_renderingTargetView, m_dsv);
 }
 void RenderTarget::bindAsRTWithExternalDepth(ID3D11DeviceContext *deviceContext,
@@ -89,7 +88,9 @@ bool RenderTarget::createRenderTarget(ID3D11Device *device, int width,
 
   if (m_hasDepth) {
     // doDepth
+    assert(0);
   }
+  return true;
 }
 void RenderTarget::clearData() {
   if (m_dsv) {

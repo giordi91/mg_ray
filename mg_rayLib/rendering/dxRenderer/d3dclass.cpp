@@ -144,6 +144,7 @@ bool D3DClass::setTransparency() {
   ID3D11BlendState *m_alphaEnableBlendingState;
   auto result = m_device->CreateBlendState(&blendStateDescription,
                                            &m_alphaEnableBlendingState);
+  assert(SUCCEEDED(result));
 
   float blendFactor[4];
   // Setup the blend factor.
@@ -160,13 +161,11 @@ bool D3DClass::setTransparency() {
 }
 
 bool D3DClass::initialize(int screenWidth, int screenHeight, bool vsync,
-                          HWND hwnd, bool fullscreen, float screenDepth,
-                          float screenNear, D3DVendor vendor) {
+                          HWND hwnd, 
+                           D3DVendor vendor) {
   m_vendor = vendor;
   HRESULT result;
   IDXGIFactory4 *factory;
-  unsigned int numerator = 0;
-  unsigned int denominator = 1;
   D3D_FEATURE_LEVEL featureLevel;
   ID3D11Texture2D *backBufferPtr;
   D3D11_RASTERIZER_DESC rasterDesc;
@@ -193,13 +192,6 @@ bool D3DClass::initialize(int screenWidth, int screenHeight, bool vsync,
   swd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
   swd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-  // Create the swap chain, Direct3D device, and Direct3D device context.
-  UINT creationFlags = 0;
-  //  UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-  //#if defined(_DEBUG)
-  //  // If the project is in a debug build, enable the debug layer.
-  //  creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
-  //#endif
   DXGI_ADAPTER_DESC2 ad;
   auto dxgiAdapter = findBestAdapter(factory, m_vendor);
   dxgiAdapter->GetDesc2(&ad);
@@ -301,7 +293,6 @@ bool D3DClass::initialize(int screenWidth, int screenHeight, bool vsync,
 
   // Setup the projection matrix.
   constexpr float fieldOfView = DirectX::XM_PI / 4.0f;
-  float screenAspect = (float)screenWidth / (float)screenHeight;
 
   // creating selection buffer
   D3D11_TEXTURE2D_DESC textureDesc;
@@ -376,6 +367,7 @@ void D3DClass::blitToRenderTarget(ID3D11Texture2D *texture) {
   ID3D11Texture2D *pBuffer;
   auto hr =
       m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&pBuffer);
+  assert(SUCCEEDED(hr) && "failed to get buffer from swap chain");
   m_deviceContext->CopyResource(pBuffer, texture);
 }
 
@@ -463,8 +455,8 @@ void D3DClass::resize(int width, int height) {
   // m_alphaEnableBlendingState->Release();
   // Set up the viewport.
   D3D11_VIEWPORT vp;
-  vp.Width = width;
-  vp.Height = height;
+  vp.Width = static_cast<float>(width);
+  vp.Height = static_cast<float>(height);
   vp.MinDepth = 0.0f;
   vp.MaxDepth = 1.0f;
   vp.TopLeftX = 0;
