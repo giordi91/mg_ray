@@ -40,10 +40,18 @@ project(mg_rayApplication)
 
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		#specific MSVC CRAP
-		set_target_properties( ${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+		set_target_properties( ${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS"
+		VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)"	
+		)
 		#making this start up project in visual studio
 		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT mg_rayApplication)
 	endif()
+
+
+	#using this to copy the mesh objs into output directory
+	add_custom_command(TARGET mg_rayApplication PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/mg_rayLib/rendering/data $<TARGET_FILE_DIR:mg_rayApplication>)
 
 
 

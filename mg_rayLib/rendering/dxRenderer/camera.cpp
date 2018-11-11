@@ -81,18 +81,13 @@ void Camera3dPivot::setupCameraBuffer(ID3D11DeviceContext *context, int slot) {
   context->PSSetConstantBuffers(slot, 1, &m_perspValuesBuffer);
 }
 
-/*
 void Camera3dPivot::setCameraMatrixToShader(DirectX::XMMATRIX modelMatrix) {
   HRESULT result;
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   ObjectBufferDef *dataPtr;
   unsigned int bufferNumber;
 
-  auto *d3d = D3DClass::get_instance();
-  auto *dev_context = d3d->GetDeviceContext();
-  auto *rendManager = RenderingManager::get_instance();
-  int m_width = rendManager->m_m_widthidth;
-  int m_height = rendManager->m_m_heighteight;
+  auto *dev_context = m_d3dClass->GetDeviceContext();
   DirectX::XMMATRIX mvp = getMVP(modelMatrix);
   mvp = XMMatrixTranspose(mvp);
   // Lock the constant buffer so it can be written to.
@@ -118,7 +113,6 @@ void Camera3dPivot::setCameraMatrixToShader(DirectX::XMMATRIX modelMatrix) {
   // values.
   dev_context->VSSetConstantBuffers(bufferNumber, 1, &m_cameraBuffer);
 }
-*/
 
 void Camera3dPivot::panCamera(float deltaX, float deltaY) {
 

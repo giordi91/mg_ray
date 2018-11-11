@@ -5,6 +5,7 @@
 namespace mg_ray {
 namespace foundation {
 class Window;
+class Input;
 }
 namespace core {
 class RenderingContext;
@@ -29,6 +30,8 @@ private:
 private:
   core::GlobalSettings m_settings;
   rendering::DebugRenderer* m_debugRenderer;
+  foundation::Input* m_input;
+
 
 
 

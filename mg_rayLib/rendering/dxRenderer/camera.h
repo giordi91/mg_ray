@@ -29,7 +29,7 @@ public:
   inline void setSize(float width, float height) {
     m_width = width, m_height = height;
   }
-  // virtual void setCameraMatrixToShader(DirectX::XMMATRIX modelMatrix);
+  void setCameraMatrixToShader(DirectX::XMMATRIX modelMatrix);
   DirectX::XMMATRIX getMVP(DirectX::XMMATRIX modelM);
   DirectX::XMMATRIX getMVPInverse(DirectX::XMMATRIX modelM);
   DirectX::XMMATRIX getViewInverse(DirectX::XMMATRIX modelM);
