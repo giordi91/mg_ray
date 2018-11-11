@@ -21,7 +21,6 @@ void RenderingManager::run() {
 void RenderingManager::MSWindowsRenderLoop() {
   MSG msg;
   bool done = false;
-  bool result = true;
 
   // initialize the message structure.
   ZeroMemory(&msg, sizeof(MSG));

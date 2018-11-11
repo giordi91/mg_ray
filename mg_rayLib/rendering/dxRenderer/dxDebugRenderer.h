@@ -33,8 +33,6 @@ public:
   LRESULT CALLBACK MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam,
                                   LPARAM lparam);
 private:
-
-private:
   foundation::DxWindow*m_window = nullptr;
   core::GlobalSettings *m_settings;
   D3DClass* m_d3dClass;

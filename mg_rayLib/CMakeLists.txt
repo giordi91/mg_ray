@@ -34,8 +34,31 @@ project(mg_rayLib)
 		#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
 	endif()
 
+	MACRO(SOURCE_GROUP_BY_FOLDER target)
+  SET(SOURCE_GROUP_DELIMITER "/")
+  SET(last_dir "")
+  SET(files "")
+  FOREACH(file ${SOURCE_FILES})
+    file(RELATIVE_PATH relative_file "${PROJECT_SOURCE_DIR}/{target}" ${file})
+    GET_FILENAME_COMPONENT(dir "${relative_file}" PATH)
+    IF (NOT "${dir}" STREQUAL "${last_dir}")
+      IF (files)
+        SOURCE_GROUP("${last_dir}" FILES ${files})
+      ENDIF (files)
+      SET(files "")
+    ENDIF (NOT "${dir}" STREQUAL "${last_dir}")
+    SET(files ${files} ${file})
+    SET(last_dir "${dir}")
+  ENDFOREACH(file)
+  IF (files)
+    SOURCE_GROUP("${last_dir}" FILES ${files})
+  ENDIF (files)
+ENDMACRO(SOURCE_GROUP_BY_FOLDER)
+
+SOURCE_GROUP_BY_FOLDER(mg_rayLib)
     #adding the executable
     add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${INCLUDES_FILES})
+
 
     # Link against LLVM libraries
     #target_link_libraries(${PROJECT_NAME} ${llvm_libs})

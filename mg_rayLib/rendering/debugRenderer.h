@@ -1,11 +1,9 @@
 #pragma once
+#include "mg_rayLib/foundation/window.h"
 
 namespace mg_ray {
 namespace core {
 struct GlobalSettings;
-}
-namespace foundation {
-class Window;
 }
 namespace rendering {
 
