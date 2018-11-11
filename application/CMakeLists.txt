@@ -37,7 +37,14 @@ project(mg_rayApplication)
     #adding the executable
     add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${INCLUDES_FILES})
 	target_link_libraries(${PROJECT_NAME} mg_rayLib)
-	set_target_properties( ${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+		#specific MSVC CRAP
+		set_target_properties( ${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+		#making this start up project in visual studio
+		set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT mg_rayApplication)
+	endif()
+
 
 
     # Link against LLVM libraries

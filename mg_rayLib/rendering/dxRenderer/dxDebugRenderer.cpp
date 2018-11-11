@@ -1,15 +1,14 @@
-#include "debugRenderer.h"
+#include "dxDebugRenderer.h"
 #include "mg_rayLib/core/globalSettings.h"
-#include "mg_rayLib/foundation/window.h"
+#include "mg_rayLib/foundation/MSWindows/dxWindow.h"
+#include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
+#include <d3d11.h>
 
 namespace mg_ray {
-namespace rendering {
-static DebugRenderer *DebugDebugRendererHandle = nullptr;
-}
-} // namespace mg_ray
 
-#ifdef WIN32
-#include "mg_rayLib/foundation/MSWindows/dxWindow.h"
+namespace rendering {
+namespace dx11 {
+static Dx11DebugRenderer *DebugDebugRendererHandle = nullptr;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam,
                          LPARAM lparam) {
@@ -28,34 +27,41 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam,
 
     // All other messages pass to the message handler in the system class.
   default: {
-    return mg_ray::rendering::DebugDebugRendererHandle->MessageHandler(
-        hwnd, umessage, wparam, lparam);
+    return DebugDebugRendererHandle->MessageHandler(hwnd, umessage, wparam,
+                                                    lparam);
   }
   }
 }
-#endif
 
-namespace mg_ray {
-namespace rendering {
-
-bool DebugRenderer::initialize(core::GlobalSettings *settings) {
+bool Dx11DebugRenderer::initialize(core::GlobalSettings *settings) {
 
   DebugDebugRendererHandle = this;
   m_settings = settings;
-
-#ifdef WIN32
   foundation::DxWindow::callback = WndProc;
-#endif
 
-  m_window = foundation::createWindow(m_settings->width, m_settings->height,
-                                      m_settings->name);
+  m_window = new foundation::DxWindow();
+  m_window->initialize(m_settings->width, m_settings->height, m_settings->name);
+  m_d3dClass = new D3DClass();
 
-  return false;
+  m_d3dClass->initialize(m_settings->width, m_settings->height, 0 /*no v-sync*/,
+                         m_window->getHWND(), 0 /*no full screen*/,
+                         m_settings->nearPlane, m_settings->farPlane,
+                         D3DVendor::ALL);
+  m_deviceContext = m_d3dClass->GetDeviceContext();
+  m_device = m_d3dClass->getDevice();
+  return true;
 }
 
-#ifdef WIN32
-LRESULT CALLBACK DebugRenderer::MessageHandler(HWND hwnd, UINT umsg,
-                                               WPARAM wparam, LPARAM lparam) {
+void Dx11DebugRenderer::frame() {
+
+  m_d3dClass->beginScene(0.5f, 0.5f, 0.5f, 1.0f);
+  m_d3dClass->endScene();
+}
+
+// windows crap manageent
+LRESULT CALLBACK Dx11DebugRenderer::MessageHandler(HWND hwnd, UINT umsg,
+                                                   WPARAM wparam,
+                                                   LPARAM lparam) {
 
   // if (m_ui_handler != nullptr) {
   //  bool res = m_ui_handler(hwnd, umsg, wparam, lparam);
@@ -160,7 +166,7 @@ m_input->m_mouse_posY = HIWORD(lparam);
   }
   }
 }
-#endif
 
+} // namespace dx11
 } // namespace rendering
 } // namespace mg_ray

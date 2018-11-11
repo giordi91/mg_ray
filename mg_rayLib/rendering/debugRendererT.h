@@ -1,4 +1,9 @@
 #pragma once
+#include <memory>
+
+#ifdef WIN32
+#include <Windows.h>
+#endif
 
 namespace mg_ray {
 namespace core {
@@ -13,20 +18,20 @@ class DebugRenderer {
 
 public:
   DebugRenderer() = default;
-  virtual ~DebugRenderer() {
-    if (m_window) {
-      delete m_window;
-    }
-  }
-  virtual bool initialize(core::GlobalSettings *settings) = 0;
+  bool initialize(core::GlobalSettings *settings);
   inline foundation::Window *getWindow() const { return m_window; }
-  // main render loop
-  virtual void frame() = 0;
+  //main render loop
+  void frame();
+
+#ifdef WIN32
+  LRESULT CALLBACK MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam,
+                                  LPARAM lparam);
+#endif
 
 private:
+  // std::unique_ptr<foundation::Window> m_window = nullptr;
   foundation::Window *m_window = nullptr;
   core::GlobalSettings *m_settings;
-
 };
 
 } // namespace rendering

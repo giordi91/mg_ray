@@ -21,10 +21,17 @@ public:
   // this is the real entry point, here we initialize everything needed
   bool initialize();
   void run();
+private:
+#ifdef WIN32
+	void MSWindowsRenderLoop();
+#endif
 
 private:
   core::GlobalSettings m_settings;
   rendering::DebugRenderer* m_debugRenderer;
+
+
+
 
   // std::unique_ptr<core::RenderingContext> m_context = nullptr;
 };
