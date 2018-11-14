@@ -5,9 +5,10 @@
 
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
 #include "mg_rayLib/rendering/debugRenderer.h"
+#include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
 #include "mg_rayLib/rendering/dxRenderer/mesh.h"
 #include "mg_rayLib/rendering/dxRenderer/surfaceShader.h"
-#include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
+#include "mg_rayLib/rendering/dxRenderer/blitShader.h"
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -15,7 +16,7 @@ namespace mg_ray {
 
 // forward declares
 namespace foundation {
-	class Input;
+class Input;
 }
 namespace core {
 struct GlobalSettings;
@@ -28,15 +29,18 @@ class Camera3dPivot;
 class Mesh;
 class SurfaceShader;
 class ImplicitSurface;
+class Texture2D;
 
 class Dx11DebugRenderer : public rendering::DebugRenderer {
 
 public:
   Dx11DebugRenderer() = default;
   virtual ~Dx11DebugRenderer() = default;
-  bool initialize(foundation::Input* input,core::GlobalSettings *settings)  override;
-  bool initializeDebugScene(core::Scene* scene) override;
-  foundation::Window *getWindow() const  override{ return m_window; }
+  bool initialize(foundation::Input *input,
+                  core::GlobalSettings *settings) override;
+  bool initializeDebugScene(core::Scene *scene) override;
+  foundation::Window *getWindow() const override { return m_window; }
+  void setRaytraceTexture(core::TextureOutput *texture) override;
   // main render loop
   void frame() override;
 
@@ -47,6 +51,7 @@ private:
   void loadMeshes();
   void render();
   void handleCameraMovement();
+  Texture2D *getDx11TextureFromCPUData(core::TextureOutput *texture);
 
 private:
   foundation::DxWindow *m_window = nullptr;
@@ -58,7 +63,10 @@ private:
   std::unique_ptr<Mesh> sphere;
   std::unique_ptr<Mesh> plane;
   std::unique_ptr<SurfaceShader> m_shader;
+  std::unique_ptr<BlitShader> m_blitShader;
   std::vector<ImplicitSurface> m_implicitMeshes;
+  Texture2D* m_raytracedTexture = nullptr;
+  ID3D11SamplerState* m_linearSampler = nullptr;
 
   int m_oldMouseX;
   int m_oldMouseY;

@@ -1,5 +1,6 @@
 #pragma once
 #include "mg_rayLib/core/globalSettings.h"
+#include "mg_rayLib/core/renderContext.h"
 #include <string>
 
 namespace mg_ray {
@@ -34,6 +35,8 @@ private:
   rendering::DebugRenderer* m_debugRenderer;
   foundation::Input* m_input;
   core::Scene* m_scene;
+  core::RenderContext* m_context;
+  bool shouldTriggerRaytraceRender = false;
 
 
 

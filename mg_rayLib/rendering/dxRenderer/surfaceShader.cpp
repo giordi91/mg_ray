@@ -18,18 +18,16 @@ SurfaceShader::~SurfaceShader() {
   //  m_layout = nullptr;
   //}
 
-  if (!isManaged) {
-    // Release the pixel shader.
-    if (m_pixelShader) {
-      m_pixelShader->Release();
-      m_pixelShader = nullptr;
-    }
+  // Release the pixel shader.
+  if (m_pixelShader) {
+    m_pixelShader->Release();
+    m_pixelShader = nullptr;
+  }
 
-    // Release the vertex shader.
-    if (m_vertexShader) {
-      m_vertexShader->Release();
-      m_vertexShader = nullptr;
-    }
+  // Release the vertex shader.
+  if (m_vertexShader) {
+    m_vertexShader->Release();
+    m_vertexShader = nullptr;
   }
 }
 

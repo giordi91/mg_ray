@@ -4,6 +4,7 @@
 #include "mg_rayLib/rendering/dxRenderer/dxDebugRenderer.h"
 #endif
 
+#include "mg_rayLib/core/cpuRenderContext.h"
 #include "mg_rayLib/core/scene.h"
 
 namespace mg_ray {
@@ -19,6 +20,14 @@ bool RenderingManager::initialize() {
   assert(0);
 #endif
 
+  // creating the render context
+  switch (m_settings.hardwareType) {
+  case (core::HardwareType::CPU): {
+    m_context = new core::CPURenderContext();
+    m_context->initialize(&m_settings);
+  }
+  }
+  assert(m_context != nullptr && "no render context was created");
   return true;
 }
 void RenderingManager::run() {
@@ -51,13 +60,12 @@ void RenderingManager::MSWindowsRenderLoop() {
         done = true;
         continue;
       }
-      // Otherwise do the frame processing.
-      // if (m_graphics != nullptr) {
-      //  result = m_graphics->frame();
-      //  if (!result) {
-      //    done = true;
-      //  }
-      //}
+      shouldTriggerRaytraceRender = true;
+      if (shouldTriggerRaytraceRender) {
+        m_context->run();
+        core::TextureOutput output = m_context->getTextureOutput();
+        m_debugRenderer->setRaytraceTexture(&output);
+      }
       m_debugRenderer->frame();
     }
   }

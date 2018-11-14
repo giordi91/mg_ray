@@ -1,8 +1,9 @@
 #pragma once
-#include "middleware/json/jsonForwadDeclare.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "middleware/json/jsonForwadDeclare.hpp"
 
 namespace mg_ray {
 namespace core {

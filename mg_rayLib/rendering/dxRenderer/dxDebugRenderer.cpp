@@ -1,12 +1,16 @@
 #include "dxDebugRenderer.h"
+
+#include <d3d11.h>
+
 #include "mg_rayLib/core/globalSettings.h"
+#include "mg_rayLib/core/renderContext.h"
 #include "mg_rayLib/core/scene.h"
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
 #include "mg_rayLib/foundation/input.h"
 #include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
 #include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
-#include <d3d11.h>
+#include "mg_rayLib/rendering/dxRenderer/texture2D.h"
 
 namespace mg_ray {
 
@@ -37,6 +41,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam,
   }
 }
 
+ID3D11SamplerState *createLinearSampler(ID3D11Device *device) {
+  ID3D11SamplerState *samplerState;
+  // Create the two samplers
+  D3D11_SAMPLER_DESC samDesc;
+  ZeroMemory(&samDesc, sizeof(samDesc));
+  samDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+  samDesc.AddressU = samDesc.AddressV = samDesc.AddressW =
+      D3D11_TEXTURE_ADDRESS_WRAP;
+  samDesc.MaxAnisotropy = 1;
+  samDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+  samDesc.MaxLOD = D3D11_FLOAT32_MAX;
+  device->CreateSamplerState(&samDesc, &samplerState);
+  return samplerState;
+}
+
 bool Dx11DebugRenderer::initialize(foundation::Input *input,
                                    core::GlobalSettings *settings) {
 
@@ -62,9 +81,14 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
   m_camera->setLookAt(0.0f, 0.0f, 0.0f);
   m_camera->setPosition(10.0f, 10.0f, 10.0f);
 
-  // load shader
+  // load shaders
   m_shader = std::make_unique<SurfaceShader>();
   m_shader->Initialize(m_d3dClass, "");
+
+  m_blitShader = std::make_unique<BlitShader>();
+  m_blitShader->Initialize(m_d3dClass, "");
+
+  m_linearSampler = createLinearSampler(m_device);
 
   // lets load the needed implicit geometries
   loadMeshes();
@@ -82,7 +106,8 @@ bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
                                             sceneM.data1.w);
       auto transform = DirectX::XMMatrixMultiply(scale, translate);
       ImplicitSurface surf;
-      surf.initialize(m_d3dClass->getDevice(),sphere.get(), transform, sceneM.material);
+      surf.initialize(m_d3dClass->getDevice(), sphere.get(), transform,
+                      sceneM.material);
       m_implicitMeshes.push_back(surf);
     } else {
       DirectX::XMFLOAT4 up{0.0f, 1.0f, 0.0f, 0.0f};
@@ -94,8 +119,8 @@ bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
       DirectX::XMVECTOR normalv =
           DirectX::XMVector3Normalize(DirectX::XMLoadFloat4(&normal));
 
-	  //lets perform a scale
-      auto transform = DirectX::XMMatrixScaling(100.0f,100.0f,100.0f);
+      // lets perform a scale
+      auto transform = DirectX::XMMatrixScaling(100.0f, 100.0f, 100.0f);
 
       auto dot = DirectX::XMVector3Dot(upv, normalv);
       // check whether or not we need to rotate
@@ -113,11 +138,28 @@ bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
       }
 
       ImplicitSurface surf;
-      surf.initialize(m_d3dClass->getDevice(),plane.get(), transform, sceneM.material);
+      surf.initialize(m_d3dClass->getDevice(), plane.get(), transform,
+                      sceneM.material);
       m_implicitMeshes.push_back(surf);
     }
   }
   return true;
+}
+void Dx11DebugRenderer::setRaytraceTexture(core::TextureOutput *texture) {
+  switch (texture->type) {
+  case (core::TextureOutputType::CPU): {
+    m_raytracedTexture = getDx11TextureFromCPUData(texture);
+    break;
+  }
+  case (core::TextureOutputType::CUDA): {
+    assert(0 && "Not implemented yet");
+    break;
+  }
+  case (core::TextureOutputType::DX11): {
+    assert(0 && "Not implemented yet");
+    break;
+  }
+  }
 };
 
 void Dx11DebugRenderer::frame() {
@@ -130,11 +172,21 @@ void Dx11DebugRenderer::frame() {
 void Dx11DebugRenderer::render() {
   handleCameraMovement();
   m_camera->Render();
+
+  if (m_raytracedTexture != nullptr) {
+    // lets render the texture instead of the debug scene
+    m_blitShader->render();
+    m_raytracedTexture->render(m_deviceContext, 0);
+    m_deviceContext->PSSetSamplers(0, 1, &m_linearSampler);
+
+    m_deviceContext->IASetPrimitiveTopology(
+        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    m_deviceContext->Draw(4, 0);
+    return;
+  }
   // draw debug geometries to make sure everything works
-  //sphere->render(m_d3dClass->GetDeviceContext(), m_camera);
-  for (int i = 0; i < m_implicitMeshes.size(); ++i)
-  {
-	  m_implicitMeshes[i].render(m_d3dClass->GetDeviceContext(), m_camera);
+  for (int i = 0; i < m_implicitMeshes.size(); ++i) {
+    m_implicitMeshes[i].render(m_d3dClass->GetDeviceContext(), m_camera);
   }
 }
 void Dx11DebugRenderer::loadMeshes() {
@@ -162,6 +214,15 @@ void Dx11DebugRenderer::handleCameraMovement() {
   // storing old position
   m_oldMouseX = m_input->m_mouse_posX;
   m_oldMouseY = m_input->m_mouse_posY;
+}
+
+Texture2D *
+Dx11DebugRenderer::getDx11TextureFromCPUData(core::TextureOutput *texture) {
+
+  auto *tex2D = new Texture2D();
+  tex2D->initFromMemoryRGBAFloat(m_device, static_cast<float *>(texture->data),
+                                 texture->width, texture->height, true, false);
+  return tex2D;
 }
 
 // windows crap manageent

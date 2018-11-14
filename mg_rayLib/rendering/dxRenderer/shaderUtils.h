@@ -155,6 +155,7 @@ inline PSBlob compilePixelShader(const std::string &fileName,
     std::cout << "failing in creating pixel shader for: " << fileName
               << std::endl;
   }
+
   return data;
 }
 
