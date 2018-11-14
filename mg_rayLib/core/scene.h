@@ -7,9 +7,21 @@
 
 namespace mg_ray {
 namespace core {
+
 enum class IMPLICIT_MESH_TYPE { SPHERE, PLANE, INVALID };
 enum class SHAPE_TYPE { IMPLICIT, POLYGONS, INVALID };
 enum class MATERIAL_TYPE { DIFFUSE, METAL, DIALECTRIC, INVALID };
+
+
+struct SceneCamera
+{
+	float view[16];
+	float vFov;
+	float aperture;
+	float focusDistance;
+	float padding;
+};
+
 
 struct DataFloat4 {
   float x, y, z, w;

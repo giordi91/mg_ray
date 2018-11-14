@@ -11,6 +11,7 @@
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
 #include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
 #include "mg_rayLib/rendering/dxRenderer/texture2D.h"
+#include <iostream>
 
 namespace mg_ray {
 
@@ -79,7 +80,7 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
                                static_cast<float>(settings->height),
                                settings->nearPlane, settings->farPlane);
   m_camera->setLookAt(0.0f, 0.0f, 0.0f);
-  m_camera->setPosition(10.0f, 10.0f, 10.0f);
+  m_camera->setPosition(0.0f, 0.0f, -10.0f);
 
   // load shaders
   m_shader = std::make_unique<SurfaceShader>();
@@ -96,7 +97,7 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
 }
 
 bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
-  int count = scene->m_implicitMeshes.size();
+  int count = static_cast<int>(scene->m_implicitMeshes.size());
   for (int i = 0; i < count; ++i) {
     const core::ImplicitSceneMesh &sceneM = scene->m_implicitMeshes[i];
     if (sceneM.type == core::IMPLICIT_MESH_TYPE::SPHERE) {
@@ -148,6 +149,10 @@ bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
 void Dx11DebugRenderer::setRaytraceTexture(core::TextureOutput *texture) {
   switch (texture->type) {
   case (core::TextureOutputType::CPU): {
+    if (m_raytracedTexture != nullptr) {
+      delete m_raytracedTexture;
+      m_raytracedTexture = nullptr;
+    }
     m_raytracedTexture = getDx11TextureFromCPUData(texture);
     break;
   }
@@ -160,7 +165,21 @@ void Dx11DebugRenderer::setRaytraceTexture(core::TextureOutput *texture) {
     break;
   }
   }
-};
+}
+void Dx11DebugRenderer::clearRaytraceTexture() {
+  if (m_raytracedTexture != nullptr) {
+    delete m_raytracedTexture;
+    m_raytracedTexture = nullptr;
+  }
+}
+void Dx11DebugRenderer::getSceneCamera(core::SceneCamera *camera) {
+  camera->vFov = 45.0f;
+  camera->aperture = 0.1f;
+  camera->focusDistance = 10;
+  DirectX::XMMATRIX view = m_camera->getViewInverse(DirectX::XMMatrixIdentity());
+  //DirectX::XMMATRIX view = m_camera->getViewMatrix();
+  DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4 *)camera->view, view);
+}
 
 void Dx11DebugRenderer::frame() {
 
@@ -168,7 +187,6 @@ void Dx11DebugRenderer::frame() {
   render();
   m_d3dClass->endScene();
 }
-
 void Dx11DebugRenderer::render() {
   handleCameraMovement();
   m_camera->Render();

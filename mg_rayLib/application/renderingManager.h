@@ -36,7 +36,10 @@ private:
   foundation::Input* m_input;
   core::Scene* m_scene;
   core::RenderContext* m_context;
-  bool shouldTriggerRaytraceRender = false;
+  bool m_shouldTriggerRaytraceRender = false;
+  bool m_shouldClearRaytraceRender= false;
+  bool m_renderButtonDown = false;
+  bool m_clearScreenFromRenderDown = false;
 
 
 

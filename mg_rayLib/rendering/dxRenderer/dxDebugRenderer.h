@@ -41,6 +41,8 @@ public:
   bool initializeDebugScene(core::Scene *scene) override;
   foundation::Window *getWindow() const override { return m_window; }
   void setRaytraceTexture(core::TextureOutput *texture) override;
+  void clearRaytraceTexture() override;
+  void getSceneCamera(core::SceneCamera* camera) override;
   // main render loop
   void frame() override;
 

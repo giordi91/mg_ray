@@ -6,7 +6,7 @@
 
 #include "mg_rayLib/core/cpuRenderContext.h"
 #include "mg_rayLib/core/scene.h"
-
+#include <iostream>
 namespace mg_ray {
 namespace application {
 bool RenderingManager::initialize() {
@@ -60,12 +60,31 @@ void RenderingManager::MSWindowsRenderLoop() {
         done = true;
         continue;
       }
-      shouldTriggerRaytraceRender = true;
-      if (shouldTriggerRaytraceRender) {
+      if (!m_input->IsKeyDown(VK_RETURN) && m_renderButtonDown) {
+        m_shouldTriggerRaytraceRender = true;
+      }
+      m_renderButtonDown = m_input->IsKeyDown(VK_RETURN);
+
+      if (!m_input->IsKeyDown(VK_BACK) && m_clearScreenFromRenderDown) {
+        m_shouldClearRaytraceRender = true;
+      }
+      m_clearScreenFromRenderDown = m_input->IsKeyDown(VK_BACK);
+
+      // shouldTriggerRaytraceRender = false;
+      if (m_shouldTriggerRaytraceRender) {
+        core::SceneCamera camera;
+		m_debugRenderer->getSceneCamera(&camera);
+		m_context->setSceneCamera(&camera);
         m_context->run();
         core::TextureOutput output = m_context->getTextureOutput();
         m_debugRenderer->setRaytraceTexture(&output);
+        m_shouldTriggerRaytraceRender = false;
       }
+      if (m_shouldClearRaytraceRender) {
+        m_debugRenderer->clearRaytraceTexture();
+        m_shouldClearRaytraceRender = false;
+      }
+
       m_debugRenderer->frame();
     }
   }
@@ -76,6 +95,7 @@ void RenderingManager::loadSceneFromFile(const std::string &path) {
   m_scene = new core::Scene();
   m_scene->loadSceneFromDescription(path);
   m_debugRenderer->initializeDebugScene(m_scene);
+  m_context->loadScene(m_scene);
 }
 } // namespace application
 } // namespace mg_ray

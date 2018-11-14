@@ -9,6 +9,7 @@ namespace core {
 struct GlobalSettings;
 struct TextureOutput;
 class Scene;
+struct SceneCamera;
 } // namespace core
 namespace rendering {
 
@@ -26,6 +27,8 @@ public:
   virtual bool initializeDebugScene(core::Scene *scene) = 0;
   virtual foundation::Window *getWindow() const = 0;
   virtual void setRaytraceTexture(core::TextureOutput *texture) = 0;
+  virtual void clearRaytraceTexture() = 0;
+  virtual void getSceneCamera(core::SceneCamera* camera) =0;
   // main render loop
   virtual void frame() = 0;
 

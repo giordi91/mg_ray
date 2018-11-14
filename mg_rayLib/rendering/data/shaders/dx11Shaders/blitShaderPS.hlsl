@@ -11,6 +11,6 @@ struct PixelInputType {
 float4 main(PixelInputType input, bool isFrontFace
             : SV_IsFrontFace)
     : SV_TARGET {
-  return  inputTexture.Sample(LinearSampler, input.uv);
+  return  inputTexture.Sample(LinearSampler, float2(input.uv.x,(1.0f-input.uv.y)));
   //return float4(1.0f, 0.0f, 0.0f, 1.0f);
 }
