@@ -25,7 +25,7 @@ struct SceneCamera {
 
 struct SceneMaterial {
   glm::vec3 albedo;
-  float glossiness;
+  float roughness;
   MATERIAL_TYPE type;
 };
 

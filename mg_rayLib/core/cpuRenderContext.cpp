@@ -197,23 +197,95 @@ glm::vec3 randomInUnitSphere(LCG &rnd) {
   return p;
 }
 
+inline glm::vec3 reflect(const glm::vec3 I, glm::vec3 N) {
+  return I - 2.0f * glm::dot(I, N) * N;
+}
+
+inline bool refract(const glm::vec3 I, const glm::vec3 N, float ior,
+                    glm::vec3 &refract) {
+  float dt = glm::clamp(glm::dot(glm::normalize(I), N), -1.0f, 1.0f);
+  float discriminant = 1.0f - ior * ior * (1.0f - dt * dt);
+  if (discriminant > 0.0f) {
+    refract = ior * (glm::normalize(I) - N * dt) - N * glm::sqrt(discriminant);
+    return true;
+  } else {
+    return false;
+  }
+}
+inline float schlick(float cosine, float refIdx) {
+  float r0 = (1.0f - refIdx) / (1.0f + refIdx);
+  r0 = r0 * r0;
+  return r0 + (1.0f - r0) * glm::pow((1.0f - cosine), 5);
+}
+
 void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
                      HitRecord *rec, glm::vec3 &outPos, glm::vec3 &outRay,
                      glm::vec3 &attenuation, LCG &rnd,
                      ImplicitSceneMesh *meshes) {
-  if (meshes[rec->hitIndex].material.type == MATERIAL_TYPE::DIFFUSE) {
+  switch (meshes[rec->hitIndex].material.type) {
+  case (MATERIAL_TYPE::DIFFUSE): {
     outPos = rec->position;
     outRay = glm::normalize(rec->normal + randomInUnitSphere(rnd));
     attenuation = meshes[rec->hitIndex].material.albedo;
-  } else {
+    break;
+
+  }
+  case (MATERIAL_TYPE::METAL): {
+    outPos = rec->position;
+    outRay = reflect(inRay, rec->normal) +
+             meshes[rec->hitIndex].material.roughness * randomInUnitSphere(rnd);
+    attenuation = meshes[rec->hitIndex].material.albedo;
+    break;
+  }
+  case (MATERIAL_TYPE::DIALECTRIC): {
+
+    float refIdx = 1.5f;
+    glm::vec3 outwardNormal;
+    glm::vec3 reflected = reflect(inRay, rec->normal);
+    attenuation = glm::vec3(1.0f, 1.0f, 1.0f);
+    float ior;
+    float cosine;
+    float reflectProb;
+
+    glm::vec3 refracted;
+
+
+    if (glm::dot(inRay, rec->normal) > 0) {
+      outwardNormal = -rec->normal;
+      ior = refIdx;
+      cosine = refIdx * glm::dot(inRay, rec->normal) / glm::length(inRay);
+    } else {
+      outwardNormal = rec->normal;
+      ior = 1.0f / refIdx;
+      cosine = -glm::dot(inRay, rec->normal) / glm::length(inRay);
+    }
+
+    if (refract(inRay, outwardNormal, ior, refracted)) {
+      reflectProb = schlick(cosine, refIdx);
+    } else {
+      reflectProb = 1.0f;
+      outPos = rec->position;
+      outRay = reflected;
+    }
+
+    if (rnd.next() < reflectProb) {
+      outPos = rec->position;
+      outRay = reflected;
+    } else {
+      outPos = rec->position;
+      outRay = refracted;
+    }
+    break;
+  }
+  default: {
     assert(0);
+  }
   }
 }
 void CPURenderContext::run() {
   int w = m_settings->width;
   int h = m_settings->height;
   float *const pixels = m_data.get();
-
 
   int SPP = 100;
   int maxRecursion = 10;
@@ -223,15 +295,15 @@ void CPURenderContext::run() {
 #pragma omp parallel for
   for (int y = 0; y < h; ++y) {
     LCG rnd(y, 324);
+    glm::vec3 p;
+    glm::vec3 ray;
+    glm::vec3 posNext;
+    glm::vec3 rayNext;
+    glm::vec3 attenuation;
+    glm::vec3 newAtt;
+    glm::vec3 color;
 
-  glm::vec3 p;
-  glm::vec3 ray;
-  glm::vec3 posNext;
-  glm::vec3 rayNext;
-  glm::vec3 attenuation;
-  glm::vec3 newAtt;
-  glm::vec3 color;
-  HitRecord rec;
+    HitRecord rec;
     for (int x = 0; x < w; ++x) {
 
       int id = (y * w + x) * 4;
@@ -240,9 +312,9 @@ void CPURenderContext::run() {
       for (int s = 0; s < SPP; ++s) {
         glm::vec3 attenuation{0.0f, 0.0f, 0.0f};
 
-        getRay(x, y, p, ray, &m_camera, m_settings);
-        // getRayInSubPixel(x, y, 0.0f, 0.0f, p, ray, &m_camera, m_settings,
-        // rnd);
+        //getRay(x, y, p, ray, &m_camera, m_settings);
+         getRayInSubPixel(x, y, 0.0f, 0.0f, p, ray, &m_camera, m_settings,
+         rnd);
 
         trace(t_min, t_max, p, ray, m_scene->m_implicitMeshes.data(),
               m_scene->m_implicitMeshes.size(), rec);

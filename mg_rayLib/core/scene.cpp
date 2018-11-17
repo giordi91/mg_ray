@@ -10,7 +10,7 @@ static const std::string SCENE_KEY_SHAPES = "shapes";
 static const std::string SCENE_KEY_TYPE = "type";
 static const std::string SCENE_KEY_MATERIAL = "material";
 static const std::string SCENE_KEY_ALBEDO = "albedo";
-static const std::string SCENE_KEY_GLOSSINESS = "glossiness";
+static const std::string SCENE_KEY_GLOSSINESS = "roughness";
 static const std::string SCENE_KEY_POSITION = "position";
 static const std::string SCENE_KEY_RADIUS = "radius";
 static const std::string SCENE_KEY_NORMAL = "normal";
@@ -179,9 +179,9 @@ SceneMaterial Scene::processSceneMaterial(const nlohmann::json &jobj) {
 
   glm::vec3 albedo = get_value_if_in_json(jobj, sceneKeys::SCENE_KEY_ALBEDO,
                                           sceneKeys::DEFAULT_VEC3);
-  float glossiness = jobj[sceneKeys::SCENE_KEY_GLOSSINESS].get<float>();
+  float roughness = jobj[sceneKeys::SCENE_KEY_GLOSSINESS].get<float>();
   MATERIAL_TYPE type = nameToMaterialType(jobj);
-  return SceneMaterial{albedo, glossiness, type};
+  return SceneMaterial{albedo, roughness, type};
 }
 void Scene::processImplicitSphere(const nlohmann::json &jobj) {
 

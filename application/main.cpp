@@ -23,7 +23,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
   mg_ray::core::GlobalSettings settings ;
   mg_ray::application::RenderingManager manager(settings);
   manager.initialize();
-  manager.loadSceneFromFile("scenes/demo1.json");
+  //manager.loadSceneFromFile("scenes/demo1.json");
+  manager.loadSceneFromFile("scenes/demo2.json");
   manager.run();
 
   return 0;
