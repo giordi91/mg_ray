@@ -6,6 +6,7 @@
 namespace mg_ray {
 namespace core {
 
+#define PI 3.14159265358979323846f /* pi */
 bool CPURenderContext::initialize(GlobalSettings *settings) {
 
   m_settings = settings;
@@ -45,6 +46,48 @@ void getRay(int x, int y, glm::vec3 &point, glm::vec3 &ray,
   ray = lowerLeft + (vertical + horizontal) - pos;
   ray = glm::normalize(ray);
   point = pos;
+}
+glm::vec3 randomInUnitDisc(LCG &rnd) {
+  glm::vec3 p;
+  do {
+    p = 2.0f * rnd.nextVec3() - glm::vec3(1.0f, 1.0f, 1.0f);
+  } while (glm::dot(p, p) >= 1.0f);
+  return p;
+}
+
+void getRayInSubPixel(int x, int y, float aperture, float focusDist,
+                      glm::vec3 &point, glm::vec3 &ray,
+                      const SceneCamera *camera, const GlobalSettings *settings,
+                      LCG &rnd) {
+  float rowF = ((float)y + rnd.next()) / (float)settings->height;
+  float colF = ((float)x + rnd.next()) / (float)settings->width;
+
+  float lensRadius = aperture * 0.5f;
+
+  // compute the camera ray
+  float theta = (float)(camera->vFov * 3.14 / 180.0);
+  float halfHeight = (float)tanf(theta * 0.5);
+  float halfWidth = halfHeight * (settings->width / settings->height);
+
+  const float *v = &camera->view[0].x;
+  glm::vec3 view{v[8], v[9], v[10]};
+  glm::vec3 up{v[4], v[5], v[6]};
+  glm::vec3 cross{v[0], v[1], v[2]};
+  glm::vec3 pos{v[12], v[13], v[14]};
+
+  glm::vec3 lowerLeft = (pos - up * halfHeight) - (cross * halfWidth - view);
+  glm::vec3 vertical = up * (2.0f * halfHeight * rowF);
+  glm::vec3 horizontal = cross * 2.0f * halfWidth * colF;
+
+  glm::vec3 rd = lensRadius * randomInUnitDisc(rnd);
+  glm::vec3 offset;
+  offset.x = rowF * rd.x;
+  offset.y = colF * rd.y;
+  offset.z = 0.0f;
+
+  ray = lowerLeft + (vertical + horizontal) - pos - offset;
+  ray = glm::normalize(ray);
+  point = pos + offset;
 }
 
 struct HitRecord {
@@ -137,50 +180,112 @@ void trace(float t_min, float t_max, const glm::vec3 &point,
   }
 }
 
-inline glm::vec3 sampleBGTexture(int x, int y, const SceneTexture& tex)
-{
-	int id = (y * tex.width + x)*4;
-	float INV_255 = 1.0f / 255.0f;
-	float r = static_cast<float>(tex.data[id + 0]) * INV_255;
-	float g = static_cast<float>(tex.data[id + 1]) * INV_255;
-	float b = static_cast<float>(tex.data[id + 2]) * INV_255;
-	return glm::vec3{ r,g,b };
+inline glm::vec3 sampleBGTexture(int x, int y, const SceneTexture &tex) {
+  int id = (y * tex.width + x) * 4;
+  float INV_255 = 1.0f / 255.0f;
+  float r = static_cast<float>(tex.data[id + 0]) * INV_255;
+  float g = static_cast<float>(tex.data[id + 1]) * INV_255;
+  float b = static_cast<float>(tex.data[id + 2]) * INV_255;
+  return glm::vec3{r, g, b};
 }
 
+glm::vec3 randomInUnitSphere(LCG &rnd) {
+  glm::vec3 p;
+  do {
+    p = 2.0f * rnd.nextVec3() - glm::vec3(1.0f, 1.0f, 1.0f);
+  } while (dot(p, p) >= 1.0f);
+  return p;
+}
+
+void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
+                     HitRecord *rec, glm::vec3 &outPos, glm::vec3 &outRay,
+                     glm::vec3 &attenuation, LCG &rnd,
+                     ImplicitSceneMesh *meshes) {
+  if (meshes[rec->hitIndex].material.type == MATERIAL_TYPE::DIFFUSE) {
+    outPos = rec->position;
+    outRay = glm::normalize(rec->normal + randomInUnitSphere(rnd));
+    attenuation = meshes[rec->hitIndex].material.albedo;
+  } else {
+    assert(0);
+  }
+}
 void CPURenderContext::run() {
   int w = m_settings->width;
   int h = m_settings->height;
   float *const pixels = m_data.get();
 
+
+  int SPP = 100;
+  int maxRecursion = 10;
+  float t_min = 0.001f;
+  float t_max = 1000.0f;
+
+#pragma omp parallel for
+  for (int y = 0; y < h; ++y) {
+    LCG rnd(y, 324);
+
   glm::vec3 p;
   glm::vec3 ray;
-
+  glm::vec3 posNext;
+  glm::vec3 rayNext;
+  glm::vec3 attenuation;
+  glm::vec3 newAtt;
+  glm::vec3 color;
   HitRecord rec;
-  for (int y = 0; y < h; ++y) {
     for (int x = 0; x < w; ++x) {
+
       int id = (y * w + x) * 4;
-      getRay(x, y, p, ray, &m_camera, m_settings);
+      color = glm::vec3{0.0f, 0.0f, 0.0f};
 
-      float t_min = 0.001f;
-      float t_max = 1000.0f;
-      trace(t_min, t_max, p, ray, m_scene->m_implicitMeshes.data(),
-            m_scene->m_implicitMeshes.size(), rec);
+      for (int s = 0; s < SPP; ++s) {
+        glm::vec3 attenuation{0.0f, 0.0f, 0.0f};
 
-      if (rec.hitIndex >= 0) {
-        pixels[id + 0] =
-            m_scene->m_implicitMeshes[rec.hitIndex].material.albedo.x;
-        pixels[id + 1] =
-            m_scene->m_implicitMeshes[rec.hitIndex].material.albedo.y;
-        pixels[id + 2] =
-            m_scene->m_implicitMeshes[rec.hitIndex].material.albedo.z;
-      } else {
-		  glm::vec3 bgColor = sampleBGTexture(x, y, m_scene->bgTexture);
-        pixels[id + 0] = bgColor.x;
-        pixels[id + 1] = bgColor.y;
-        pixels[id + 2] = bgColor.z;
-      }
-    }
-  }
+        getRay(x, y, p, ray, &m_camera, m_settings);
+        // getRayInSubPixel(x, y, 0.0f, 0.0f, p, ray, &m_camera, m_settings,
+        // rnd);
+
+        trace(t_min, t_max, p, ray, m_scene->m_implicitMeshes.data(),
+              m_scene->m_implicitMeshes.size(), rec);
+
+        if (rec.hitIndex >= 0) {
+          scatterMaterial(p, ray, &rec, posNext, rayNext, attenuation, rnd,
+                          m_scene->m_implicitMeshes.data());
+
+          for (int r = 0; r < maxRecursion; ++r) {
+
+            // we shoot a ray based on how the material scattered
+            trace(t_min, t_max, posNext, rayNext,
+                  m_scene->m_implicitMeshes.data(),
+                  m_scene->m_implicitMeshes.size(), rec);
+            if (rec.hitIndex >= 0) {
+              // lets scatter
+              p = posNext;
+              ray = rayNext;
+              scatterMaterial(p, ray, &rec, posNext, rayNext, newAtt, rnd,
+                              m_scene->m_implicitMeshes.data());
+              attenuation *= newAtt;
+              continue;
+            } else {
+              glm::vec3 bgColor = sampleBGTexture(x, y, m_scene->bgTexture);
+              attenuation *= bgColor;
+              break;
+            }
+          }
+
+        } else {
+          glm::vec3 bgColor = sampleBGTexture(x, y, m_scene->bgTexture);
+          attenuation = bgColor;
+        }
+        color += attenuation;
+      } // SPP
+
+      color *= (1.0f / SPP);
+      pixels[id + 0] = color.x;
+      pixels[id + 1] = color.y;
+      pixels[id + 2] = color.z;
+
+    } // column
+  }   // rows
 }
 
 void CPURenderContext::cleanup() {}
