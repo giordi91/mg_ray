@@ -151,13 +151,6 @@ void CPURenderContext::run() {
       int id = (y * w + x) * 4;
       getRay(x, y, p, ray, &m_camera, m_settings);
 
-      // ImplicitSceneMesh &m = m_scene->m_implicitMeshes[0];
-      // if (y == 300 && x == 600) {
-      //  int ddd = 0;
-      //}
-
-      // glm::vec3 pos{m.data1.x, m.data1.y, m.data1.z};
-      // bool hit = hitSphere(pos, m.data1.w, p, ray, 0.001f, 1000.0f, &rec);
       float t_min = 0.001f;
       float t_max = 1000.0f;
       trace(t_min, t_max, p, ray, m_scene->m_implicitMeshes.data(),

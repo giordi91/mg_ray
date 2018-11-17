@@ -1,29 +1,6 @@
 #include "mg_rayLib/core/scene.h"
 #include "mg_rayLib/core/file_utils.h"
 
-template <>
-inline mg_ray::core::DataFloat4
-get_value_if_in_json(const nlohmann::json &data, std::string key,
-                     mg_ray::core::DataFloat4 default_value) {
-  if (data.find(key) != data.end()) {
-    auto &vec = data[key];
-    return mg_ray::core::DataFloat4{vec[0].get<float>(), vec[1].get<float>(),
-                                    vec[2].get<float>(), vec[3].get<float>()};
-  }
-  return default_value;
-}
-
-template <>
-inline mg_ray::core::DataFloat3
-get_value_if_in_json(const nlohmann::json &data, std::string key,
-                     mg_ray::core::DataFloat3 default_value) {
-  if (data.find(key) != data.end()) {
-    auto &vec = data[key];
-    return mg_ray::core::DataFloat3{vec[0].get<float>(), vec[1].get<float>(),
-                                    vec[2].get<float>()};
-  }
-  return default_value;
-}
 namespace mg_ray {
 namespace core {
 
@@ -38,8 +15,8 @@ static const std::string SCENE_KEY_RADIUS = "radius";
 static const std::string SCENE_KEY_NORMAL = "normal";
 static const std::string SCENE_KEY_IMPLICIT_DATA = "implicitData";
 static const std::string DEFAULT_STRING;
-static const DataFloat4 DEFAULT_DATAFLOAT4{0.0f, 0.0f, 0.0f, 0.0f};
-static const DataFloat3 DEFAULT_DATAFLOAT3{0.0f, 0.0f, 0.0f};
+static const glm::vec4 DEFAULT_VEC4{0.0f, 0.0f, 0.0f, 0.0f};
+static const glm::vec3 DEFAULT_VEC3{0.0f, 0.0f, 0.0f};
 
 static const std::unordered_map<std::string, SHAPE_TYPE> m_nameToShapeType{
     {"implicit", SHAPE_TYPE::IMPLICIT}, {"polygons", SHAPE_TYPE::POLYGONS}};
@@ -49,7 +26,7 @@ static const std::unordered_map<std::string, IMPLICIT_MESH_TYPE>
 static const std::unordered_map<std::string, MATERIAL_TYPE>
     m_nameToMaterialType{{"diffuse", MATERIAL_TYPE::DIFFUSE},
                          {"metal", MATERIAL_TYPE::METAL},
-                         {"dialectric", MATERIAL_TYPE::DIALECTRIC}};
+                         {"dielectric", MATERIAL_TYPE::DIALECTRIC}};
 } // namespace sceneKeys
 
 SHAPE_TYPE nameToShape(const std::string &name) {
@@ -140,8 +117,8 @@ SceneMaterial Scene::processSceneMaterial(const nlohmann::json &jobj) {
   assertValueInJson(jobj, sceneKeys::SCENE_KEY_GLOSSINESS);
   assertValueInJson(jobj, sceneKeys::SCENE_KEY_TYPE);
 
-  DataFloat3 albedo = get_value_if_in_json(jobj, sceneKeys::SCENE_KEY_ALBEDO,
-                                           sceneKeys::DEFAULT_DATAFLOAT3);
+  glm::vec3 albedo = get_value_if_in_json(jobj, sceneKeys::SCENE_KEY_ALBEDO,
+                                          sceneKeys::DEFAULT_VEC3);
   float glossiness = jobj[sceneKeys::SCENE_KEY_GLOSSINESS].get<float>();
   MATERIAL_TYPE type = nameToMaterialType(jobj);
   return SceneMaterial{albedo, glossiness, type};

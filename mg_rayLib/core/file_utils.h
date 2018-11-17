@@ -1,7 +1,7 @@
 #pragma once
 #undef max
+#include "middleware/glm/glm.hpp"
 #include "middleware/json/json.hpp"
-#include <DirectXMath.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -167,13 +167,14 @@ vec[3].get<float>()); return DirectX::XMLoadFloat4(&temp);
   }
   return default_value;
 }
+*/
 
 // ========================= GLM TEMPLATES
-============================================
+//============================================
 
-/*
 template <>
-inline glm::mat4 get_value_if_in_json(nlohmann::json &data, std::string key,
+inline glm::mat4 get_value_if_in_json(const nlohmann::json &data,
+                                      std::string key,
                                       glm::mat4 default_value) {
   if (data.find(key) != data.end()) {
     auto &mat = data[key];
@@ -188,7 +189,8 @@ inline glm::mat4 get_value_if_in_json(nlohmann::json &data, std::string key,
   return default_value;
 }
 template <>
-inline glm::vec3 get_value_if_in_json(nlohmann::json &data, std::string key,
+inline glm::vec3 get_value_if_in_json(const nlohmann::json &data,
+                                      std::string key,
                                       glm::vec3 default_value) {
   if (data.find(key) != data.end()) {
     auto &vec = data[key];
@@ -199,7 +201,7 @@ inline glm::vec3 get_value_if_in_json(nlohmann::json &data, std::string key,
 }
 
 template <>
-inline glm::vec4 get_value_if_in_json(nlohmann::json &data, std::string key,
+inline glm::vec4 get_value_if_in_json(const nlohmann::json &data, std::string key,
                                       glm::vec4 default_value) {
   if (data.find(key) != data.end()) {
     auto &vec = data[key];
@@ -208,14 +210,15 @@ inline glm::vec4 get_value_if_in_json(nlohmann::json &data, std::string key,
   }
   return default_value;
 }
+/*
 template <>
-inline glm::quat get_value_if_in_json(nlohmann::json &data, std::string key,
+inline glm::quat get_value_if_in_json(const nlohmann::json &data, std::string key,
                                       glm::quat default_value) {
   if (data.find(key) != data.end()) {
     auto &vec = data[key];
-    // need to be careful quaternion is initialize differntly
-    // then how i export stuff, the glm quat is w,x,y,z
-    // meanhwile i export x,y,z,w!
+    // need to be careful quaternion is initialize differently
+    // then how I export stuff, the glm quat is w,x,y,z
+    // meanwhile i export x,y,z,w!
     return glm::quat(vec[3].get<float>(), vec[0].get<float>(),
                      vec[1].get<float>(), vec[2].get<float>());
   }
