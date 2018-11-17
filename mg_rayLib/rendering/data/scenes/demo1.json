@@ -26,5 +26,9 @@
         "type": "diffuse"
       }
     }
-  ]
+  ],
+  "backgroundTexture": {
+    "type": "T_2D",
+    "path": "textures/skyBG.png"
+  }
 }

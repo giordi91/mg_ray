@@ -12,6 +12,8 @@ namespace core {
 enum class IMPLICIT_MESH_TYPE { SPHERE, PLANE, INVALID };
 enum class SHAPE_TYPE { IMPLICIT, POLYGONS, INVALID };
 enum class MATERIAL_TYPE { DIFFUSE, METAL, DIALECTRIC, INVALID };
+// suffix T is only for not having 2D as an enum
+enum class TEXTURE_TYPE { T_2D, INVALID };
 
 struct SceneCamera {
   glm::mat4x4 view;
@@ -33,6 +35,13 @@ struct ImplicitSceneMesh {
   SceneMaterial material;
 };
 
+struct SceneTexture {
+  TEXTURE_TYPE type;
+  int width = -1;
+  int height = -1;
+  unsigned char *data = nullptr;
+};
+
 class Scene {
 public:
   Scene() = default;
@@ -41,6 +50,9 @@ public:
 
 public:
   std::vector<ImplicitSceneMesh> m_implicitMeshes;
+  SceneTexture bgTexture;
+
+private:
   void processPolygonShape(const nlohmann::json &jobj);
   void processImplicitShape(const nlohmann::json &jobj);
   void processImplicitSphere(const nlohmann::json &jobj);

@@ -137,6 +137,16 @@ void trace(float t_min, float t_max, const glm::vec3 &point,
   }
 }
 
+inline glm::vec3 sampleBGTexture(int x, int y, const SceneTexture& tex)
+{
+	int id = (y * tex.width + x)*4;
+	float INV_255 = 1.0f / 255.0f;
+	float r = static_cast<float>(tex.data[id + 0]) * INV_255;
+	float g = static_cast<float>(tex.data[id + 1]) * INV_255;
+	float b = static_cast<float>(tex.data[id + 2]) * INV_255;
+	return glm::vec3{ r,g,b };
+}
+
 void CPURenderContext::run() {
   int w = m_settings->width;
   int h = m_settings->height;
@@ -164,9 +174,10 @@ void CPURenderContext::run() {
         pixels[id + 2] =
             m_scene->m_implicitMeshes[rec.hitIndex].material.albedo.z;
       } else {
-        pixels[id + 0] = 0.5f;
-        pixels[id + 1] = 0.5f;
-        pixels[id + 2] = 0.5f;
+		  glm::vec3 bgColor = sampleBGTexture(x, y, m_scene->bgTexture);
+        pixels[id + 0] = bgColor.x;
+        pixels[id + 1] = bgColor.y;
+        pixels[id + 2] = bgColor.z;
       }
     }
   }
