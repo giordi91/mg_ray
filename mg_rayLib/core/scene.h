@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "middleware/json/jsonForwadDeclare.hpp"
+#include "middleware/glm/glm.hpp"
 
 namespace mg_ray {
 namespace core {
@@ -15,7 +16,8 @@ enum class MATERIAL_TYPE { DIFFUSE, METAL, DIALECTRIC, INVALID };
 
 struct SceneCamera
 {
-	float view[16];
+	//float view[16];
+	glm::mat4x4 view;
 	float vFov;
 	float aperture;
 	float focusDistance;
@@ -55,24 +57,6 @@ public:
   void processImplicitPlane(const nlohmann::json &jobj);
   SceneMaterial processSceneMaterial(const nlohmann::json &jobj);
 
-private:
-  static const std::string SCENE_KEY_SHAPES;
-  static const std::string SCENE_KEY_TYPE;
-  static const std::string SCENE_KEY_MATERIAL;
-  static const std::string SCENE_KEY_ALBEDO;
-  static const std::string SCENE_KEY_GLOSSINESS;
-  static const std::string SCENE_KEY_POSITION;
-  static const std::string SCENE_KEY_RADIUS;
-  static const std::string SCENE_KEY_NORMAL;
-  static const std::string SCENE_KEY_IMPLICIT_DATA;
-  static const std::string DEFAULT_STRING;
-  static const DataFloat4 DEFAULT_DATAFLOAT4;
-  static const DataFloat3 DEFAULT_DATAFLOAT3;
-  static const std::unordered_map<std::string, SHAPE_TYPE> m_nameToShapeType;
-  static const std::unordered_map<std::string, IMPLICIT_MESH_TYPE>
-      m_nameToImplicitType;
-  static const std::unordered_map<std::string, MATERIAL_TYPE>
-      m_nameToMaterialType;
 };
 } // namespace core
 } // namespace mg_ray

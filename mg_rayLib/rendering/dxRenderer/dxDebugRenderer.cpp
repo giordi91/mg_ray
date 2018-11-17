@@ -176,9 +176,11 @@ void Dx11DebugRenderer::getSceneCamera(core::SceneCamera *camera) {
   camera->vFov = 45.0f;
   camera->aperture = 0.1f;
   camera->focusDistance = 10;
-  DirectX::XMMATRIX view = m_camera->getViewInverse(DirectX::XMMatrixIdentity());
-  //DirectX::XMMATRIX view = m_camera->getViewMatrix();
-  DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4 *)camera->view, view);
+  DirectX::XMMATRIX view =
+      m_camera->getViewInverse(DirectX::XMMatrixIdentity());
+  //copying the camera to the right place we need, aint pretty but it s faster
+  //than jump around between different datatypes, we just have 16 contiguos floats
+  DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4 *)(&camera->view[0].x), view);
 }
 
 void Dx11DebugRenderer::frame() {

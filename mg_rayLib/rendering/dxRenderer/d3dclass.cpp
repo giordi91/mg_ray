@@ -161,8 +161,7 @@ bool D3DClass::setTransparency() {
 }
 
 bool D3DClass::initialize(int screenWidth, int screenHeight, bool vsync,
-                          HWND hwnd, 
-                           D3DVendor vendor) {
+                          HWND hwnd, D3DVendor vendor) {
   m_vendor = vendor;
   HRESULT result;
   IDXGIFactory4 *factory;
@@ -182,7 +181,6 @@ bool D3DClass::initialize(int screenWidth, int screenHeight, bool vsync,
   }
 
   DXGI_SWAP_CHAIN_DESC1 swd;
-  // ZeroMem(swd);
   ZeroMemory(&swd, sizeof(swd));
   swd.Width = screenWidth;
   swd.Height = screenHeight;

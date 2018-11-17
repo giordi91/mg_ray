@@ -1,10 +1,10 @@
 #pragma once
-#undef  max
+#undef max
 #include "middleware/json/json.hpp"
+#include <DirectXMath.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <DirectXMath.h>
 
 inline bool file_exists(const std::string &name) {
   std::ifstream f(name.c_str());
@@ -96,24 +96,33 @@ inline void load_file_into_string(const char *path, std::string &data) {
   }
 }
 
-inline const std::string getFileName(const std::string& path)
-{
-      auto exp_path = std::experimental::filesystem::path(path);
-	  return exp_path.filename().string();
+inline const std::string getFileName(const std::string &path) {
+  auto exp_path = std::experimental::filesystem::path(path);
+  return exp_path.filename().string();
 }
 
-
 template <typename T>
-T get_value_if_in_json(const nlohmann::json &data, std::string key, T default_value) {
+T get_value_if_in_json(const nlohmann::json &data, std::string key,
+                       T default_value) {
   if (data.find(key) != data.end()) {
     return data[key].get<T>();
   }
   return default_value;
 }
 
+inline void assertValueInJson(const nlohmann::json &jobj,
+                              const std::string &key) {
+  if (jobj.find(key) == jobj.end()) {
+    assert(0 && "key not found in json");
+  }
+}
+
+// ========================= DIRECTX TEMPLATES
+// ============================================
+/*
 template <>
-inline DirectX::XMMATRIX get_value_if_in_json(const nlohmann::json &data, std::string key,
-                                      DirectX::XMMATRIX default_value) {
+inline DirectX::XMMATRIX get_value_if_in_json(const nlohmann::json &data,
+std::string key, DirectX::XMMATRIX default_value) {
 
   if (data.find(key) != data.end()) {
     auto &mat = data[key];
@@ -127,39 +136,40 @@ inline DirectX::XMMATRIX get_value_if_in_json(const nlohmann::json &data, std::s
   }
   return default_value;
 }
+*/
+
 /*
 template <>
-inline DirectX::XMFLOAT3 get_value_if_in_json(const nlohmann::json &data, std::string key,
-                                      DirectX::XMFLOAT3 default_value) {
-  if (data.find(key) != data.end()) {
-    auto &vec = data[key];
-    return DirectX::XMFLOAT3(vec[0].get<float>(), vec[1].get<float>(),
+inline DirectX::XMFLOAT3 get_value_if_in_json(const nlohmann::json &data,
+std::string key, DirectX::XMFLOAT3 default_value) { if (data.find(key) !=
+data.end()) { auto &vec = data[key]; return
+DirectX::XMFLOAT3(vec[0].get<float>(), vec[1].get<float>(),
                      vec[2].get<float>());
   }
   return default_value;
 }
 template <>
-inline DirectX::XMFLOAT4 get_value_if_in_json(const nlohmann::json &data, std::string key,
-                                      DirectX::XMFLOAT4 default_value) {
-  if (data.find(key) != data.end()) {
-    auto &vec = data[key];
-    return DirectX::XMFLOAT4(vec[0].get<float>(), vec[1].get<float>(),
+inline DirectX::XMFLOAT4 get_value_if_in_json(const nlohmann::json &data,
+std::string key, DirectX::XMFLOAT4 default_value) { if (data.find(key) !=
+data.end()) { auto &vec = data[key]; return
+DirectX::XMFLOAT4(vec[0].get<float>(), vec[1].get<float>(),
                      vec[2].get<float>(),vec[3].get<float>() );
   }
   return default_value;
 }
 
 template <>
-inline DirectX::XMVECTOR get_value_if_in_json(const nlohmann::json &data, std::string key,
-                                      DirectX::XMVECTOR default_value) {
-  if (data.find(key) != data.end()) {
-    auto &vec = data[key];
-    auto temp = DirectX::XMFLOAT4(vec[0].get<float>(), vec[1].get<float>(),
-                     vec[2].get<float>(), vec[3].get<float>());
-	return DirectX::XMLoadFloat4(&temp);
+inline DirectX::XMVECTOR get_value_if_in_json(const nlohmann::json &data,
+std::string key, DirectX::XMVECTOR default_value) { if (data.find(key) !=
+data.end()) { auto &vec = data[key]; auto temp =
+DirectX::XMFLOAT4(vec[0].get<float>(), vec[1].get<float>(), vec[2].get<float>(),
+vec[3].get<float>()); return DirectX::XMLoadFloat4(&temp);
   }
   return default_value;
 }
+
+// ========================= GLM TEMPLATES
+============================================
 
 /*
 template <>

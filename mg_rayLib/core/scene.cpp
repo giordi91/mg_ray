@@ -1,46 +1,6 @@
 #include "mg_rayLib/core/scene.h"
 #include "mg_rayLib/core/file_utils.h"
 
-#define ASSERT_VALUE_IN_JSON(jobj, key)                                        \
-  if (jobj.find(key) == jobj.end()) {                                          \
-    assert(0 && "key not found in json");                                      \
-  }
-
-#define NAME_TO_SHAPE_TYPE(name, returnValue)                                  \
-  auto found = m_nameToShapeType.find(name);                                   \
-  if (found == m_nameToShapeType.end()) {                                      \
-    returnValue = SHAPE_TYPE::INVALID;                                         \
-  } else {                                                                     \
-    returnValue = found->second;                                               \
-  }                                                                            \
-  assert(returnValue != SHAPE_TYPE::INVALID)
-
-#define NAME_TO_IMPLICIT_MESH_TYPE(jobj, returnValue)                          \
-  const std::string stype =                                                    \
-      get_value_if_in_json(jobj, SCENE_KEY_TYPE, DEFAULT_STRING);              \
-  assert(!stype.empty() &&                                                     \
-         "could not find type in shape being read from file");                 \
-  auto found = m_nameToImplicitType.find(stype);                               \
-  if (found == m_nameToImplicitType.end()) {                                   \
-    returnValue = IMPLICIT_MESH_TYPE::INVALID;                                 \
-  } else {                                                                     \
-    returnValue = found->second;                                               \
-  }                                                                            \
-  assert(returnValue != IMPLICIT_MESH_TYPE::INVALID);
-
-#define NAME_TO_MATERIAL_TYPE(jobj, returnValue)                               \
-  const std::string stype =                                                    \
-      get_value_if_in_json(jobj, SCENE_KEY_TYPE, DEFAULT_STRING);              \
-  assert(!stype.empty() &&                                                     \
-         "could not find type in material being read from file");              \
-  auto found = m_nameToMaterialType.find(stype);                               \
-  if (found == m_nameToMaterialType.end()) {                                   \
-    returnValue = MATERIAL_TYPE::INVALID;                                      \
-  } else {                                                                     \
-    returnValue = found->second;                                               \
-  }                                                                            \
-  assert(returnValue != MATERIAL_TYPE::INVALID);
-
 template <>
 inline mg_ray::core::DataFloat4
 get_value_if_in_json(const nlohmann::json &data, std::string key,
@@ -67,46 +27,83 @@ get_value_if_in_json(const nlohmann::json &data, std::string key,
 namespace mg_ray {
 namespace core {
 
-const std::string Scene::SCENE_KEY_SHAPES = "shapes";
-const std::string Scene::SCENE_KEY_TYPE = "type";
-const std::string Scene::SCENE_KEY_MATERIAL = "material";
-const std::string Scene::SCENE_KEY_ALBEDO = "albedo";
-const std::string Scene::SCENE_KEY_GLOSSINESS = "glossiness";
-const std::string Scene::SCENE_KEY_POSITION = "position";
-const std::string Scene::SCENE_KEY_RADIUS = "radius";
-const std::string Scene::SCENE_KEY_NORMAL = "normal";
-const std::string Scene::SCENE_KEY_IMPLICIT_DATA = "implicitData";
-const std::string Scene::DEFAULT_STRING;
-const DataFloat4 Scene::DEFAULT_DATAFLOAT4{0.0f, 0.0f, 0.0f, 0.0f};
-const DataFloat3 Scene::DEFAULT_DATAFLOAT3{0.0f, 0.0f, 0.0f};
+namespace sceneKeys {
+static const std::string SCENE_KEY_SHAPES = "shapes";
+static const std::string SCENE_KEY_TYPE = "type";
+static const std::string SCENE_KEY_MATERIAL = "material";
+static const std::string SCENE_KEY_ALBEDO = "albedo";
+static const std::string SCENE_KEY_GLOSSINESS = "glossiness";
+static const std::string SCENE_KEY_POSITION = "position";
+static const std::string SCENE_KEY_RADIUS = "radius";
+static const std::string SCENE_KEY_NORMAL = "normal";
+static const std::string SCENE_KEY_IMPLICIT_DATA = "implicitData";
+static const std::string DEFAULT_STRING;
+static const DataFloat4 DEFAULT_DATAFLOAT4{0.0f, 0.0f, 0.0f, 0.0f};
+static const DataFloat3 DEFAULT_DATAFLOAT3{0.0f, 0.0f, 0.0f};
 
-const std::unordered_map<std::string, SHAPE_TYPE> Scene::m_nameToShapeType{
+static const std::unordered_map<std::string, SHAPE_TYPE> m_nameToShapeType{
     {"implicit", SHAPE_TYPE::IMPLICIT}, {"polygons", SHAPE_TYPE::POLYGONS}};
-const std::unordered_map<std::string, IMPLICIT_MESH_TYPE>
-    Scene::m_nameToImplicitType{{"sphere", IMPLICIT_MESH_TYPE::SPHERE},
-                                {"plane", IMPLICIT_MESH_TYPE::PLANE}};
-const std::unordered_map<std::string, MATERIAL_TYPE>
-    Scene::m_nameToMaterialType{{"diffuse", MATERIAL_TYPE::DIFFUSE},
-                                {"metal", MATERIAL_TYPE::METAL},
-                                {"dialectric", MATERIAL_TYPE::DIALECTRIC}};
+static const std::unordered_map<std::string, IMPLICIT_MESH_TYPE>
+    m_nameToImplicitType{{"sphere", IMPLICIT_MESH_TYPE::SPHERE},
+                         {"plane", IMPLICIT_MESH_TYPE::PLANE}};
+static const std::unordered_map<std::string, MATERIAL_TYPE>
+    m_nameToMaterialType{{"diffuse", MATERIAL_TYPE::DIFFUSE},
+                         {"metal", MATERIAL_TYPE::METAL},
+                         {"dialectric", MATERIAL_TYPE::DIALECTRIC}};
+} // namespace sceneKeys
 
+SHAPE_TYPE nameToShape(const std::string &name) {
+  auto found = sceneKeys::m_nameToShapeType.find(name);
+  SHAPE_TYPE toReturn = SHAPE_TYPE::INVALID;
+  if (found != sceneKeys::m_nameToShapeType.end()) {
+    return found->second;
+  }
+  assert(toReturn != SHAPE_TYPE::INVALID);
+  return toReturn;
+}
+
+IMPLICIT_MESH_TYPE nameToImplicitMesh(const nlohmann::json &jobj) {
+  auto returnValue = IMPLICIT_MESH_TYPE::INVALID;
+  const std::string stype = get_value_if_in_json(
+      jobj, sceneKeys::SCENE_KEY_TYPE, sceneKeys::DEFAULT_STRING);
+  assert(!stype.empty() && "could not find type in shape being read from file");
+  auto found = sceneKeys::m_nameToImplicitType.find(stype);
+  if (found != sceneKeys::m_nameToImplicitType.end()) {
+    returnValue = found->second;
+  }
+  assert(returnValue != IMPLICIT_MESH_TYPE::INVALID);
+  return returnValue;
+}
+
+MATERIAL_TYPE nameToMaterialType(const nlohmann::json &jobj) {
+  auto returnValue = MATERIAL_TYPE::INVALID;
+  const std::string stype = get_value_if_in_json(
+      jobj, sceneKeys::SCENE_KEY_TYPE, sceneKeys::DEFAULT_STRING);
+  assert(!stype.empty() &&
+         "could not find type in material being read from file");
+  auto found = sceneKeys::m_nameToMaterialType.find(stype);
+  if (found != sceneKeys::m_nameToMaterialType.end()) {
+    returnValue = found->second;
+  }
+  assert(returnValue != MATERIAL_TYPE::INVALID);
+  return returnValue;
+}
 void Scene::loadSceneFromDescription(const std::string &path) {
 
   auto jobj = get_json_obj(path);
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_SHAPES);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_SHAPES);
 
   // getting the array of shapes
-  auto shapesj = jobj[SCENE_KEY_SHAPES];
+  auto shapesj = jobj[sceneKeys::SCENE_KEY_SHAPES];
 
   for (const auto &shape : shapesj) {
-    const std::string stype =
-        get_value_if_in_json(shape, SCENE_KEY_TYPE, DEFAULT_STRING);
+    const std::string stype = get_value_if_in_json(
+        shape, sceneKeys::SCENE_KEY_TYPE, sceneKeys::DEFAULT_STRING);
     assert(!stype.empty() &&
            "could not find type in shape being read from file");
 
     // extracting and processing the type of shape we have
-    SHAPE_TYPE type;
-    NAME_TO_SHAPE_TYPE(stype, type);
+    SHAPE_TYPE type = nameToShape(stype);
     switch (type) {
     case (SHAPE_TYPE::IMPLICIT): {
       processImplicitShape(shape);
@@ -122,10 +119,9 @@ void Scene::loadSceneFromDescription(const std::string &path) {
 
 void Scene::processImplicitShape(const nlohmann::json &jobj) {
 
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_IMPLICIT_DATA);
-  auto impDataj = jobj[SCENE_KEY_IMPLICIT_DATA];
-  IMPLICIT_MESH_TYPE type;
-  NAME_TO_IMPLICIT_MESH_TYPE(impDataj, type);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_IMPLICIT_DATA);
+  auto impDataj = jobj[sceneKeys::SCENE_KEY_IMPLICIT_DATA];
+  IMPLICIT_MESH_TYPE type = nameToImplicitMesh(impDataj);
   switch (type) {
   case (IMPLICIT_MESH_TYPE::SPHERE): {
     processImplicitSphere(jobj);
@@ -140,51 +136,50 @@ void Scene::processImplicitShape(const nlohmann::json &jobj) {
 
 SceneMaterial Scene::processSceneMaterial(const nlohmann::json &jobj) {
 
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_ALBEDO);
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_GLOSSINESS);
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_TYPE);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_ALBEDO);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_GLOSSINESS);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_TYPE);
 
-  DataFloat3 albedo =
-      get_value_if_in_json(jobj, SCENE_KEY_ALBEDO, DEFAULT_DATAFLOAT3);
-  float glossiness = jobj[SCENE_KEY_GLOSSINESS].get<float>();
-  MATERIAL_TYPE type;
-  NAME_TO_MATERIAL_TYPE(jobj, type);
+  DataFloat3 albedo = get_value_if_in_json(jobj, sceneKeys::SCENE_KEY_ALBEDO,
+                                           sceneKeys::DEFAULT_DATAFLOAT3);
+  float glossiness = jobj[sceneKeys::SCENE_KEY_GLOSSINESS].get<float>();
+  MATERIAL_TYPE type = nameToMaterialType(jobj);
   return SceneMaterial{albedo, glossiness, type};
 }
 void Scene::processImplicitSphere(const nlohmann::json &jobj) {
 
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_MATERIAL);
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_IMPLICIT_DATA);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_MATERIAL);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_IMPLICIT_DATA);
 
-  auto impJ = jobj[SCENE_KEY_IMPLICIT_DATA];
-  ASSERT_VALUE_IN_JSON(impJ, SCENE_KEY_POSITION);
-  ASSERT_VALUE_IN_JSON(impJ, SCENE_KEY_RADIUS);
+  auto impJ = jobj[sceneKeys::SCENE_KEY_IMPLICIT_DATA];
+  assertValueInJson(impJ, sceneKeys::SCENE_KEY_POSITION);
+  assertValueInJson(impJ, sceneKeys::SCENE_KEY_RADIUS);
 
-  auto pos = impJ[SCENE_KEY_POSITION];
-  auto radius = impJ[SCENE_KEY_RADIUS];
-  m_implicitMeshes.emplace_back(
-      ImplicitSceneMesh{IMPLICIT_MESH_TYPE::SPHERE,
-                        {pos[0].get<float>(), pos[1].get<float>(),
-                         pos[2].get<float>(), radius.get<float>()},
-                        processSceneMaterial(jobj[SCENE_KEY_MATERIAL])});
+  auto pos = impJ[sceneKeys::SCENE_KEY_POSITION];
+  auto radius = impJ[sceneKeys::SCENE_KEY_RADIUS];
+  m_implicitMeshes.emplace_back(ImplicitSceneMesh{
+      IMPLICIT_MESH_TYPE::SPHERE,
+      {pos[0].get<float>(), pos[1].get<float>(), pos[2].get<float>(),
+       radius.get<float>()},
+      processSceneMaterial(jobj[sceneKeys::SCENE_KEY_MATERIAL])});
 }
 
 void Scene::processImplicitPlane(const nlohmann::json &jobj) {
 
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_MATERIAL);
-  ASSERT_VALUE_IN_JSON(jobj, SCENE_KEY_IMPLICIT_DATA);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_MATERIAL);
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_IMPLICIT_DATA);
 
-  auto impJ = jobj[SCENE_KEY_IMPLICIT_DATA];
-  ASSERT_VALUE_IN_JSON(impJ, SCENE_KEY_POSITION);
-  ASSERT_VALUE_IN_JSON(impJ, SCENE_KEY_NORMAL);
+  auto impJ = jobj[sceneKeys::SCENE_KEY_IMPLICIT_DATA];
+  assertValueInJson(impJ, sceneKeys::SCENE_KEY_POSITION);
+  assertValueInJson(impJ, sceneKeys::SCENE_KEY_NORMAL);
 
-  auto pos = impJ[SCENE_KEY_POSITION];
-  auto normal = impJ[SCENE_KEY_NORMAL];
-  m_implicitMeshes.emplace_back(
-      ImplicitSceneMesh{IMPLICIT_MESH_TYPE::PLANE,
-                        {normal[0].get<float>(), normal[1].get<float>(),
-                         normal[2].get<float>(), pos.get<float>()},
-                        processSceneMaterial(jobj[SCENE_KEY_MATERIAL])});
+  auto pos = impJ[sceneKeys::SCENE_KEY_POSITION];
+  auto normal = impJ[sceneKeys::SCENE_KEY_NORMAL];
+  m_implicitMeshes.emplace_back(ImplicitSceneMesh{
+      IMPLICIT_MESH_TYPE::PLANE,
+      {normal[0].get<float>(), normal[1].get<float>(), normal[2].get<float>(),
+       pos.get<float>()},
+      processSceneMaterial(jobj[sceneKeys::SCENE_KEY_MATERIAL])});
 }
 void Scene::processPolygonShape(const nlohmann::json &jobj) {
   assert(0 && "processing of polygon shape not implemented yet");
