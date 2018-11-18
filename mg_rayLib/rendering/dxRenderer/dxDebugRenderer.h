@@ -58,6 +58,7 @@ private:
   void render();
   void handleCameraMovement();
   Texture2D *getDx11TextureFromCPUData(core::TextureOutput *texture);
+  void setupMaterial(int i);
 
 private:
   struct DebugMesh {

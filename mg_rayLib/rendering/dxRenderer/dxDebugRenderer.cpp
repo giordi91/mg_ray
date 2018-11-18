@@ -227,6 +227,52 @@ void Dx11DebugRenderer::getSceneCamera(core::SceneCamera *camera) {
   DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4 *)(&camera->view[0].x), view);
 }
 
+void Dx11DebugRenderer::setupMaterial(int i) {
+  // setup the material
+  Dx11Material mat;
+  mat.ambient.x = 0.1;
+  mat.ambient.y = 0.1;
+  mat.ambient.z = 0.1;
+  DirectX::XMFLOAT3 camPos = m_camera->getPosition();
+  ;
+  mat.cameraPosition.x = camPos.x;
+  mat.cameraPosition.y = camPos.y;
+  mat.cameraPosition.z = camPos.z;
+  mat.cameraPosition.w = 1.0f;
+
+  mat.lightPosition.x = 10.0f;
+  mat.lightPosition.y = 10.0f;
+  mat.lightPosition.z = 10.0f;
+  mat.lightPosition.w = 1.0f;
+
+  mat.specular.x = 1.0f;
+  mat.specular.y = 1.0f;
+  mat.specular.z = 1.0f;
+  mat.specular.w = 0.0f;
+
+  const core::SceneMaterial &material = m_polygonMeshes[i].material;
+  mat.diffuse.x = material.albedo.x;
+  mat.diffuse.y = material.albedo.y;
+  mat.diffuse.z = material.albedo.z;
+  mat.specular.w = 0.0f;
+
+  mat.shiness = 100.0f;
+
+  HRESULT result;
+  D3D11_MAPPED_SUBRESOURCE mappedResource;
+  ObjectBufferDef *dataPtr;
+  unsigned int bufferNumber;
+
+  ID3D11DeviceContext *deviceContext = m_d3dClass->GetDeviceContext();
+  result = m_d3dClass->GetDeviceContext()->Map(
+      m_matBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+  assert(SUCCEEDED(result));
+  memcpy(mappedResource.pData, &mat, sizeof(Dx11Material));
+  deviceContext->Unmap(m_matBuffer, 0);
+
+  deviceContext->PSSetConstantBuffers(0, 1, &m_matBuffer);
+}
+
 void Dx11DebugRenderer::frame() {
 
   m_d3dClass->beginScene(0.5f, 0.5f, 0.5f, 1.0f);
@@ -257,51 +303,8 @@ void Dx11DebugRenderer::render() {
   } else {
     for (int i = 0; i < m_polygonMeshes.size(); ++i) {
       m_camera->setCameraMatrixToShader(DirectX::XMMatrixIdentity());
-      // setup the material
-      Dx11Material mat;
-      mat.ambient.x = 0.1;
-      mat.ambient.y = 0.1;
-      mat.ambient.z = 0.1;
-      DirectX::XMFLOAT3 camPos = m_camera->getPosition();
-      ;
-      mat.cameraPosition.x = camPos.x;
-      mat.cameraPosition.y = camPos.y;
-      mat.cameraPosition.z = camPos.z;
-      mat.cameraPosition.w = 1.0f;
-
-      mat.lightPosition.x = 10.0f;
-      mat.lightPosition.y = 10.0f;
-      mat.lightPosition.z = 10.0f;
-      mat.lightPosition.w = 1.0f;
-
-      mat.specular.x = 1.0f;
-      mat.specular.y = 1.0f;
-      mat.specular.z = 1.0f;
-      mat.specular.w = 0.0f;
-
-      const core::SceneMaterial &material = m_polygonMeshes[i].material;
-      mat.diffuse.x = material.albedo.x;
-      mat.diffuse.y = material.albedo.y;
-      mat.diffuse.z = material.albedo.z;
-      mat.specular.w = 0.0f;
-
-      mat.shiness = 100.0f;
-
-      HRESULT result;
-      D3D11_MAPPED_SUBRESOURCE mappedResource;
-      ObjectBufferDef *dataPtr;
-      unsigned int bufferNumber;
-
-      ID3D11DeviceContext *deviceContext = m_d3dClass->GetDeviceContext();
-      result = m_d3dClass->GetDeviceContext()->Map(
-          m_matBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-      assert(SUCCEEDED(result));
-      memcpy(mappedResource.pData, &mat, sizeof(Dx11Material));
-      deviceContext->Unmap(m_matBuffer, 0);
-
-      deviceContext->PSSetConstantBuffers(0, 1, &m_matBuffer);
-
-      m_polygonMeshes[i].mesh.render(deviceContext, m_camera);
+      setupMaterial(i);
+      m_polygonMeshes[i].mesh.render(m_d3dClass->GetDeviceContext(), m_camera);
     }
   }
 }
