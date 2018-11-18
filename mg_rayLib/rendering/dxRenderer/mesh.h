@@ -12,8 +12,7 @@ namespace mg_ray {
 namespace rendering {
 namespace dx11 {
 
-struct Dx11Material 
-{
+struct Dx11Material {
   DirectX::XMFLOAT4 cameraPosition;
   DirectX::XMFLOAT4 lightPosition;
   DirectX::XMFLOAT4 ambient;
@@ -31,20 +30,22 @@ class Mesh {
 public:
   Mesh() { transform = DirectX::XMMatrixIdentity(); }
   void load(ID3D11Device *device, tinyobj::attrib_t &attr,
-            tinyobj::shape_t &shape, SurfaceShader* shader);
+            tinyobj::shape_t &shape, SurfaceShader *shader);
   void loadFromFile(ID3D11Device *device, const std::string &path,
-                    SurfaceShader* shader);
-  void render(ID3D11DeviceContext *context , Camera3dPivot* camera);
+                    SurfaceShader *shader);
+  void initFromFlatBufferPosNormalUV8(ID3D11Device *device, const float *data,
+                                      unsigned int vertexCount,
+                                      SurfaceShader *shader);
+  void render(ID3D11DeviceContext *context, Camera3dPivot *camera);
   void translate(float x, float y, float z);
 
 public:
-
   unsigned int m_vertexCount;
   ID3D11Buffer *m_vertexBuffer;
   ID3D11Buffer *m_indexBuffer;
   DirectX::XMMATRIX transform;
   int m_stride;
-  SurfaceShader* m_shader;
+  SurfaceShader *m_shader;
 };
 
 } // namespace dx11

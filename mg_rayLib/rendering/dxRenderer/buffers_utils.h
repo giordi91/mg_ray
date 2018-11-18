@@ -5,7 +5,7 @@ namespace mg_ray {
 namespace rendering {
 namespace dx11 {
 inline ID3D11Buffer *getVertexBuffer(ID3D11Device *device, int dataSizeInByte,
-                                     void *data,
+                                     const void *data,
                                      D3D11_USAGE usage = D3D11_USAGE_DEFAULT,
                                      int extraBindFlags = 0,
                                      int miscFlags = 0) {

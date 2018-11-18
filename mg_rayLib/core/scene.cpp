@@ -243,7 +243,11 @@ void Scene::processPolygonShape(const nlohmann::json &jobj) {
 
   sceneMesh.triangles = dataIO::fromTinyObjToFlatPointNormalUVBuffer(
       data, shapes[0], sceneMesh.triangleCount);
-}
+  // make sure we are moving into the vector due to the unique ptr
+  sceneMesh.material =
+      processSceneMaterial(jobj[sceneKeys::SCENE_KEY_MATERIAL]);
+  m_polygonMeshes.push_back(std::move(sceneMesh));
+} // namespace core
 
 } // namespace core
 } // namespace mg_ray

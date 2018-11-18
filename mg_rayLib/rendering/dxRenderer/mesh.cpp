@@ -46,6 +46,27 @@ void Mesh::loadFromFile(ID3D11Device *device, const std::string &path,
   tinyobj::LoadObj(&data, &shapes, &materials, &err, path.c_str(), 0, true);
   load(device, data, shapes[0], shader);
 }
+void Mesh::initFromFlatBufferPosNormalUV8(ID3D11Device *device,
+                                          const float *data,
+                                          unsigned int vertexCount,
+                                          SurfaceShader *shader) {
+
+  m_vertexCount = vertexCount;
+  m_shader = shader;
+  m_stride = 8;
+  std::vector<unsigned int> render_index(m_vertexCount);
+  unsigned int *const idx = render_index.data();
+
+#pragma omp parallel for
+  for (int i = 0; i < vertexCount; ++i) {
+    idx[i] = i;
+  }
+  // creating the buffers
+  m_vertexBuffer =
+      getVertexBuffer(device, vertexCount * m_stride * sizeof(float), data);
+  m_indexBuffer =
+      getIndexBuffer(device, m_vertexCount * sizeof(int), render_index.data());
+}
 void Mesh::render(ID3D11DeviceContext *deviceContext, Camera3dPivot *camera) {
 
   m_shader->render();

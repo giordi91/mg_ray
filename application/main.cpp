@@ -24,7 +24,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
   mg_ray::application::RenderingManager manager(settings);
   manager.initialize();
   //manager.loadSceneFromFile("scenes/demo1.json");
-  manager.loadSceneFromFile("scenes/demo3.json");
+  manager.loadSceneFromFile("scenes/demo4SphereTriangle.json");
   manager.run();
 
   return 0;

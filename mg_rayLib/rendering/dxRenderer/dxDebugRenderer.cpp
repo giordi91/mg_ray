@@ -7,6 +7,7 @@
 #include "mg_rayLib/core/scene.h"
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
 #include "mg_rayLib/foundation/input.h"
+#include "mg_rayLib/rendering/dxRenderer/buffers_utils.h"
 #include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
 #include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
@@ -93,14 +94,21 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
 
   // lets load the needed implicit geometries
   loadMeshes();
+
+  // initialize constant buffer used to draw polygonal meshes
+  m_matBuffer =
+      getConstantBuffer(m_d3dClass->getDevice(), sizeof(Dx11Material));
   return true;
 }
 
-bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
+void Dx11DebugRenderer::loadImplicitScene(core::Scene *scene) {
   int count = static_cast<int>(scene->m_implicitMeshes.size());
   for (int i = 0; i < count; ++i) {
     const core::SceneImplicitMesh &sceneM = scene->m_implicitMeshes[i];
     if (sceneM.type == core::IMPLICIT_MESH_TYPE::SPHERE) {
+      // if the type is a sphere our life is simpler,
+      // we just build a  uniform scale matrix to reflect the radius
+      // and translate the sphere in position
       auto translate = DirectX::XMMatrixTranslation(
           sceneM.data1.x, sceneM.data1.y, sceneM.data1.z);
       auto scale = DirectX::XMMatrixScaling(sceneM.data1.w, sceneM.data1.w,
@@ -111,6 +119,8 @@ bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
                       sceneM.material);
       m_implicitMeshes.push_back(surf);
     } else {
+
+      // in the case of a plane our life is a bit more complicated
       DirectX::XMFLOAT4 up{0.0f, 1.0f, 0.0f, 0.0f};
       DirectX::XMFLOAT4 normal{sceneM.data1.x, sceneM.data1.y, sceneM.data1.z,
                                0.0f};
@@ -120,11 +130,15 @@ bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
       DirectX::XMVECTOR normalv =
           DirectX::XMVector3Normalize(DirectX::XMLoadFloat4(&normal));
 
-      // lets perform a scale
-      auto transform = DirectX::XMMatrixScaling(100.0f, 100.0f, 100.0f);
+      // lets perform a a big scale to approximate an infinite plane
+      auto transform = DirectX::XMMatrixScaling(1000.0f, 1000.0f, 1000.0f);
 
       auto dot = DirectX::XMVector3Dot(upv, normalv);
-      // check whether or not we need to rotate
+      // check whether or not we need to rotate, the main idea is, you assume no
+      // rotation is
+      // perfectly vertical, you extract the angle from the dot with the up
+      // vector and plane normal generate a rotation on the perpendicular vector
+      // and the angle. this will perform the rotation.
       if ((dot.m128_f32[0] - 1.0f) > 0.001f) {
         auto cross =
             DirectX::XMVector4Normalize(DirectX::XMVector3Cross(upv, normalv));
@@ -143,6 +157,35 @@ bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
                       sceneM.material);
       m_implicitMeshes.push_back(surf);
     }
+  }
+  m_sceneMode = SceneMode::IMPLICIT;
+}
+
+void Dx11DebugRenderer::loadTrianglesScene(core::Scene *scene) {
+
+  int count = static_cast<int>(scene->m_polygonMeshes.size());
+  m_polygonMeshes.reserve(count);
+  for (int i = 0; i < count; ++i) {
+    // lets instantiate a mesh per scene mesh
+    Mesh mesh;
+    const core::ScenePolygonMesh &sceneMesh = scene->m_polygonMeshes[i];
+    mesh.initFromFlatBufferPosNormalUV8(
+        m_d3dClass->getDevice(), sceneMesh.triangles.get(),
+        sceneMesh.triangleCount, m_shader.get());
+    m_polygonMeshes.emplace_back(DebugMesh{mesh, sceneMesh.material});
+  }
+  m_sceneMode = SceneMode::POLYGONS;
+}
+bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
+
+  int count = static_cast<int>(scene->m_implicitMeshes.size());
+  // assuming implicit meshes, right now does not allow mixed implicit and
+  // triangles
+  if (count != 0) {
+    loadImplicitScene(scene);
+  } else {
+    // otherwise we load polygons
+    loadTrianglesScene(scene);
   }
   return true;
 }
@@ -178,8 +221,9 @@ void Dx11DebugRenderer::getSceneCamera(core::SceneCamera *camera) {
   camera->focusDistance = 10;
   DirectX::XMMATRIX view =
       m_camera->getViewInverse(DirectX::XMMatrixIdentity());
-  //copying the camera to the right place we need, aint pretty but it s faster
-  //than jump around between different datatypes, we just have 16 contiguos floats
+  // copying the camera to the right place we need, aint pretty but it s faster
+  // than jump around between different datatypes, we just have 16 contiguos
+  // floats
   DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4 *)(&camera->view[0].x), view);
 }
 
@@ -204,9 +248,61 @@ void Dx11DebugRenderer::render() {
     m_deviceContext->Draw(4, 0);
     return;
   }
-  // draw debug geometries to make sure everything works
-  for (int i = 0; i < m_implicitMeshes.size(); ++i) {
-    m_implicitMeshes[i].render(m_d3dClass->GetDeviceContext(), m_camera);
+
+  if (m_sceneMode == SceneMode::IMPLICIT) {
+    // draw debug geometries to make sure everything works
+    for (int i = 0; i < m_implicitMeshes.size(); ++i) {
+      m_implicitMeshes[i].render(m_d3dClass->GetDeviceContext(), m_camera);
+    }
+  } else {
+    for (int i = 0; i < m_polygonMeshes.size(); ++i) {
+      m_camera->setCameraMatrixToShader(DirectX::XMMatrixIdentity());
+      // setup the material
+      Dx11Material mat;
+      mat.ambient.x = 0.1;
+      mat.ambient.y = 0.1;
+      mat.ambient.z = 0.1;
+      DirectX::XMFLOAT3 camPos = m_camera->getPosition();
+      ;
+      mat.cameraPosition.x = camPos.x;
+      mat.cameraPosition.y = camPos.y;
+      mat.cameraPosition.z = camPos.z;
+      mat.cameraPosition.w = 1.0f;
+
+      mat.lightPosition.x = 10.0f;
+      mat.lightPosition.y = 10.0f;
+      mat.lightPosition.z = 10.0f;
+      mat.lightPosition.w = 1.0f;
+
+      mat.specular.x = 1.0f;
+      mat.specular.y = 1.0f;
+      mat.specular.z = 1.0f;
+      mat.specular.w = 0.0f;
+
+      const core::SceneMaterial &material = m_polygonMeshes[i].material;
+      mat.diffuse.x = material.albedo.x;
+      mat.diffuse.y = material.albedo.y;
+      mat.diffuse.z = material.albedo.z;
+      mat.specular.w = 0.0f;
+
+      mat.shiness = 100.0f;
+
+      HRESULT result;
+      D3D11_MAPPED_SUBRESOURCE mappedResource;
+      ObjectBufferDef *dataPtr;
+      unsigned int bufferNumber;
+
+      ID3D11DeviceContext *deviceContext = m_d3dClass->GetDeviceContext();
+      result = m_d3dClass->GetDeviceContext()->Map(
+          m_matBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+      assert(SUCCEEDED(result));
+      memcpy(mappedResource.pData, &mat, sizeof(Dx11Material));
+      deviceContext->Unmap(m_matBuffer, 0);
+
+      deviceContext->PSSetConstantBuffers(0, 1, &m_matBuffer);
+
+      m_polygonMeshes[i].mesh.render(deviceContext, m_camera);
+    }
   }
 }
 void Dx11DebugRenderer::loadMeshes() {
@@ -245,7 +341,7 @@ Dx11DebugRenderer::getDx11TextureFromCPUData(core::TextureOutput *texture) {
   return tex2D;
 }
 
-// windows crap manageent
+// windows crap management
 LRESULT CALLBACK Dx11DebugRenderer::MessageHandler(HWND hwnd, UINT umsg,
                                                    WPARAM wparam,
                                                    LPARAM lparam) {
