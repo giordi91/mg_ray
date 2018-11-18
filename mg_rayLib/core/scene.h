@@ -11,7 +11,7 @@ namespace core {
 
 enum class IMPLICIT_MESH_TYPE { SPHERE, PLANE, INVALID };
 enum class SHAPE_TYPE { IMPLICIT, POLYGONS, INVALID };
-enum class MATERIAL_TYPE { DIFFUSE, METAL, DIALECTRIC, INVALID };
+enum class MATERIAL_TYPE { DIFFUSE, METAL, DIALECTRIC, LIGHT, INVALID };
 // suffix T is only for not having 2D as an enum
 enum class TEXTURE_TYPE { T_2D, INVALID };
 

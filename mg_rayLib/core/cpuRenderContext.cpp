@@ -55,6 +55,48 @@ glm::vec3 randomInUnitDisc(LCG &rnd) {
   return p;
 }
 
+void getRayInSubPixelWithThinLens(int x, int y, glm::vec3 &pt, glm::vec3 &ray,
+                                  const SceneCamera *camera,
+                                  const GlobalSettings *settings, LCG &rnd) {
+
+  float rowF = ((float)y + rnd.next()) / (float)settings->height;
+  float colF = ((float)x + rnd.next()) / (float)settings->width;
+
+  float lensRadius = camera->aperture * 0.5f;
+
+  // compute the camera ray
+  float theta = (float)(camera->vFov * 3.14 / 180.0);
+  float halfHeight = (float)tanf(theta * 0.5);
+  float halfWidth = halfHeight * (settings->width / settings->height);
+
+  const float *v = &camera->view[0].x;
+  glm::vec3 view{v[8], v[9], v[10]};
+  glm::vec3 up{v[4], v[5], v[6]};
+  glm::vec3 cross{v[0], v[1], v[2]};
+  glm::vec3 pos{v[12], v[13], v[14]};
+
+  float focusDist = camera->focusDistance;
+  glm::vec3 lowerLeft = (pos - up * halfHeight * focusDist) -
+                        (cross * halfWidth * focusDist - view * focusDist);
+  glm::vec3 vertical = up * (2.0f * halfHeight * rowF) * focusDist;
+  glm::vec3 horizontal = (cross * 2.0f * halfWidth * colF) * focusDist;
+
+  // float3 lowerLeft = pos - up * halfHeight*focusDist - cross * halfWidth
+  // *focusDist - view*focusDist; float3 vertical = up * (2.0f * halfHeight *
+  // rowF)*focusDist; float3 horizontal = (cross * 2.0f * halfWidth *
+  // colF)*focusDist;
+
+  glm::vec3 rd = lensRadius * randomInUnitDisc(rnd);
+  glm::vec3 offset;
+  offset.x = rowF * rd.x;
+  offset.y = colF * rd.y;
+  offset.z = 0.0f;
+
+  ray = lowerLeft + (vertical + horizontal) - pos - offset;
+  ray = glm::normalize(ray);
+  pt = pos + offset;
+}
+
 void getRayInSubPixel(int x, int y, float aperture, float focusDist,
                       glm::vec3 &point, glm::vec3 &ray,
                       const SceneCamera *camera, const GlobalSettings *settings,
@@ -228,7 +270,6 @@ void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
     outRay = glm::normalize(rec->normal + randomInUnitSphere(rnd));
     attenuation = meshes[rec->hitIndex].material.albedo;
     break;
-
   }
   case (MATERIAL_TYPE::METAL): {
     outPos = rec->position;
@@ -248,7 +289,6 @@ void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
     float reflectProb;
 
     glm::vec3 refracted;
-
 
     if (glm::dot(inRay, rec->normal) > 0) {
       outwardNormal = -rec->normal;
@@ -287,7 +327,7 @@ void CPURenderContext::run() {
   int h = m_settings->height;
   float *const pixels = m_data.get();
 
-  int SPP = 100;
+  int SPP = 10000;
   int maxRecursion = 10;
   float t_min = 0.001f;
   float t_max = 1000.0f;
@@ -312,9 +352,10 @@ void CPURenderContext::run() {
       for (int s = 0; s < SPP; ++s) {
         glm::vec3 attenuation{0.0f, 0.0f, 0.0f};
 
-        //getRay(x, y, p, ray, &m_camera, m_settings);
-         getRayInSubPixel(x, y, 0.0f, 0.0f, p, ray, &m_camera, m_settings,
-         rnd);
+        // getRay(x, y, p, ray, &m_camera, m_settings);
+        // getRayInSubPixel(x, y, 0.0f, 0.0f, p, ray, &m_camera, m_settings,
+        // rnd);
+        getRayInSubPixelWithThinLens(x, y, p, ray, &m_camera, m_settings, rnd);
 
         trace(t_min, t_max, p, ray, m_scene->m_implicitMeshes.data(),
               m_scene->m_implicitMeshes.size(), rec);
@@ -322,6 +363,13 @@ void CPURenderContext::run() {
         if (rec.hitIndex >= 0) {
           scatterMaterial(p, ray, &rec, posNext, rayNext, attenuation, rnd,
                           m_scene->m_implicitMeshes.data());
+
+          // checking if we hit directly a light
+          if (m_scene->m_implicitMeshes[rec.hitIndex].material.type ==
+              MATERIAL_TYPE::LIGHT) {
+            color += m_scene->m_implicitMeshes[rec.hitIndex].material.albedo;
+            continue;
+          }
 
           for (int r = 0; r < maxRecursion; ++r) {
 
@@ -333,6 +381,15 @@ void CPURenderContext::run() {
               // lets scatter
               p = posNext;
               ray = rayNext;
+
+              // checking if we hit directly a light
+              if (m_scene->m_implicitMeshes[rec.hitIndex].material.type ==
+                  MATERIAL_TYPE::LIGHT) {
+                attenuation *=
+                    m_scene->m_implicitMeshes[rec.hitIndex].material.albedo;
+                break;
+              }
+
               scatterMaterial(p, ray, &rec, posNext, rayNext, newAtt, rnd,
                               m_scene->m_implicitMeshes.data());
               attenuation *= newAtt;

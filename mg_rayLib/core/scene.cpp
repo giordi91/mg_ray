@@ -32,7 +32,8 @@ static const std::unordered_map<std::string, IMPLICIT_MESH_TYPE>
 static const std::unordered_map<std::string, MATERIAL_TYPE>
     m_nameToMaterialType{{"diffuse", MATERIAL_TYPE::DIFFUSE},
                          {"metal", MATERIAL_TYPE::METAL},
-                         {"dielectric", MATERIAL_TYPE::DIALECTRIC}};
+                         {"dielectric", MATERIAL_TYPE::DIALECTRIC},
+                         {"light", MATERIAL_TYPE::LIGHT}};
 
 static const std::unordered_map<std::string, TEXTURE_TYPE> nameToTextureType{
     {"T_2D", TEXTURE_TYPE::T_2D}};
