@@ -41,11 +41,30 @@ inline void generatePositionFloat4(D3D11_INPUT_ELEMENT_DESC *ptr) {
   ptr->InstanceDataStepRate = 0;
 }
 
+inline void generatePositionFloat3(D3D11_INPUT_ELEMENT_DESC *ptr) {
+  ptr->SemanticName = "POSITION";
+  ptr->SemanticIndex = 0;
+  ptr->Format = DXGI_FORMAT_R32G32B32_FLOAT;
+  ptr->InputSlot = 0;
+  ptr->AlignedByteOffset = 0;
+  ptr->InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+  ptr->InstanceDataStepRate = 0;
+}
 inline void generateNormalsFloat4(D3D11_INPUT_ELEMENT_DESC *ptr,
                                   unsigned int offset = 16) {
   ptr->SemanticName = "NORMAL";
   ptr->SemanticIndex = 0;
   ptr->Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  ptr->InputSlot = 0;
+  ptr->AlignedByteOffset = offset;
+  ptr->InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+  ptr->InstanceDataStepRate = 0;
+}
+inline void generateNormalsFloat3(D3D11_INPUT_ELEMENT_DESC *ptr,
+                                  unsigned int offset = 12) {
+  ptr->SemanticName = "NORMAL";
+  ptr->SemanticIndex = 0;
+  ptr->Format = DXGI_FORMAT_R32G32B32_FLOAT;
   ptr->InputSlot = 0;
   ptr->AlignedByteOffset = offset;
   ptr->InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
@@ -63,6 +82,17 @@ inline void generateUVsFloat4(D3D11_INPUT_ELEMENT_DESC *ptr,
   ptr->InstanceDataStepRate = 0;
 }
 
+inline void generateUVsFloat2(D3D11_INPUT_ELEMENT_DESC *ptr,
+                              unsigned int offset = 24) {
+  ptr->SemanticName = "TEXCOORD";
+  ptr->SemanticIndex = 0;
+  ptr->Format = DXGI_FORMAT_R32G32_FLOAT;
+  ptr->InputSlot = 0;
+  ptr->AlignedByteOffset = offset;
+  ptr->InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+  ptr->InstanceDataStepRate = 0;
+}
+
 inline void zeroOutLayouts(LayoutHandle &handle) {
   for (int i = 0; i < handle.size; ++i) {
     ZeroMemory(handle.layout + i, sizeof(D3D11_INPUT_ELEMENT_DESC));
@@ -72,10 +102,14 @@ inline void zeroOutLayouts(LayoutHandle &handle) {
 LayoutHandle SurfaceShader::generateMeshLayout() {
   // basic mesh layout
   LayoutHandle basicMeshHandle{new D3D11_INPUT_ELEMENT_DESC[3], 3};
-  zeroOutLayouts(basicMeshHandle);
-  generatePositionFloat4(basicMeshHandle.layout);
-  generateNormalsFloat4(basicMeshHandle.layout + 1, 16);
-  generateUVsFloat4(basicMeshHandle.layout + 2, 32);
+  //zeroOutLayouts(basicMeshHandle);
+  //generatePositionFloat4(basicMeshHandle.layout);
+  //generateNormalsFloat4(basicMeshHandle.layout + 1, 16);
+  //generateUVsFloat4(basicMeshHandle.layout + 2, 32);
+
+  generatePositionFloat3(basicMeshHandle.layout);
+  generateNormalsFloat3(basicMeshHandle.layout + 1, 12);
+  generateUVsFloat2(basicMeshHandle.layout + 2, 24);
   return basicMeshHandle;
 }
 ID3D11InputLayout *getLayout(ID3D11Device *device, LayoutHandle handle,

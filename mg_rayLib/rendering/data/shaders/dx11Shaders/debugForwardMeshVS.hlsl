@@ -4,9 +4,9 @@ cbuffer CameraBuffer : register(b0) {
 };
 
 struct VertexInputType {
-  float4 position : POSITION;
-  float4 normal : NORMAL;
-  float4 uv : TEXCOORD;
+  float3 position : POSITION;
+  float3 normal : NORMAL;
+  float2 uv : TEXCOORD;
 };
 
 struct PixelInputType {
@@ -21,9 +21,9 @@ PixelInputType main(VertexInputType input) {
 
   // Calculate the position of the vertex against the world, view, and
   // projection matrices.
-  output.position = mul(input.position, MVP);
-  output.wolrdPosition = input.position;
-  output.normal = input.normal;
-  output.uv = input.uv;
+  output.position = mul(float4(input.position,1.0f), MVP);
+  output.wolrdPosition = float4(input.position,1.0f);
+  output.normal = float4(input.normal,0.0f);
+  output.uv.xy = input.uv;
   return output;
 }
