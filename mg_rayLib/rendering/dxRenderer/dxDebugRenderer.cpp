@@ -99,7 +99,7 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
 bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
   int count = static_cast<int>(scene->m_implicitMeshes.size());
   for (int i = 0; i < count; ++i) {
-    const core::ImplicitSceneMesh &sceneM = scene->m_implicitMeshes[i];
+    const core::SceneImplicitMesh &sceneM = scene->m_implicitMeshes[i];
     if (sceneM.type == core::IMPLICIT_MESH_TYPE::SPHERE) {
       auto translate = DirectX::XMMatrixTranslation(
           sceneM.data1.x, sceneM.data1.y, sceneM.data1.z);

@@ -1,4 +1,5 @@
 #include "mg_rayLib/core/scene.h"
+#include "mg_rayLib/core/dataManipulationHelper.h"
 #include "mg_rayLib/core/file_utils.h"
 #include "middleware/stb_image.h"
 #include "middleware/tiny_obj_loader.h"
@@ -104,7 +105,8 @@ inline SceneTexture loadTextrue(const nlohmann::json &textureJ) {
   assert(width != -1 && "error loading texture, width is not defined");
   assert(height != -1 && "error loading texture, height is not defined");
 
-  return SceneTexture{texType, width, height, data};
+  return SceneTexture{texType, width, height,
+                      std::unique_ptr<unsigned char[]>(data)};
 }
 
 inline SceneTexture loadBackgroundTexture(const nlohmann::json &jobj) {
@@ -200,7 +202,7 @@ void Scene::processImplicitSphere(const nlohmann::json &jobj) {
 
   auto pos = impJ[sceneKeys::SCENE_KEY_POSITION];
   auto radius = impJ[sceneKeys::SCENE_KEY_RADIUS];
-  m_implicitMeshes.emplace_back(ImplicitSceneMesh{
+  m_implicitMeshes.emplace_back(SceneImplicitMesh{
       IMPLICIT_MESH_TYPE::SPHERE,
       {pos[0].get<float>(), pos[1].get<float>(), pos[2].get<float>(),
        radius.get<float>()},
@@ -218,7 +220,7 @@ void Scene::processImplicitPlane(const nlohmann::json &jobj) {
 
   auto pos = impJ[sceneKeys::SCENE_KEY_POSITION];
   auto normal = impJ[sceneKeys::SCENE_KEY_NORMAL];
-  m_implicitMeshes.emplace_back(ImplicitSceneMesh{
+  m_implicitMeshes.emplace_back(SceneImplicitMesh{
       IMPLICIT_MESH_TYPE::PLANE,
       {normal[0].get<float>(), normal[1].get<float>(), normal[2].get<float>(),
        pos.get<float>()},
@@ -237,6 +239,10 @@ void Scene::processPolygonShape(const nlohmann::json &jobj) {
   tinyobj::attrib_t data;
   std::string err;
   tinyobj::LoadObj(&data, &shapes, &materials, &err, path.c_str(), 0, true);
+  ScenePolygonMesh sceneMesh;
+
+  sceneMesh.triangles = dataIO::fromTinyObjToFlatPointNormalUVBuffer(
+      data, shapes[0], sceneMesh.triangleCount);
 }
 
 } // namespace core

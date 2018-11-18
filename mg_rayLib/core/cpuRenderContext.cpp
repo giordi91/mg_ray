@@ -186,7 +186,7 @@ bool hitPlane(const glm::vec3 &n, const glm::vec3 &planePoint,
 
 // tracing the scene
 void trace(float t_min, float t_max, const glm::vec3 &point,
-           const glm::vec3 &ray, const ImplicitSceneMesh *implicitData,
+           const glm::vec3 &ray, const SceneImplicitMesh *implicitData,
            int impLen, HitRecord &finalRec) {
 
   finalRec.hitIndex = -1;
@@ -263,7 +263,7 @@ inline float schlick(float cosine, float refIdx) {
 void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
                      HitRecord *rec, glm::vec3 &outPos, glm::vec3 &outRay,
                      glm::vec3 &attenuation, LCG &rnd,
-                     ImplicitSceneMesh *meshes) {
+                     SceneImplicitMesh *meshes) {
   switch (meshes[rec->hitIndex].material.type) {
   case (MATERIAL_TYPE::DIFFUSE): {
     outPos = rec->position;

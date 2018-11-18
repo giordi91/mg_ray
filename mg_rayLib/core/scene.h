@@ -29,14 +29,14 @@ struct SceneMaterial {
   MATERIAL_TYPE type;
 };
 
-struct ImplicitSceneMesh {
+struct SceneImplicitMesh {
   IMPLICIT_MESH_TYPE type;
   glm::vec4 data1;
   SceneMaterial material;
 };
 struct ScenePolygonMesh {
-  float *triangles;
-  int triangleCount;
+  std::unique_ptr<float[]> triangles;
+  unsigned int triangleCount;
   SceneMaterial material;
 };
 
@@ -44,7 +44,7 @@ struct SceneTexture {
   TEXTURE_TYPE type;
   int width = -1;
   int height = -1;
-  unsigned char *data = nullptr;
+  std::unique_ptr<unsigned char[]> data = nullptr;
 };
 
 class Scene {
@@ -54,7 +54,7 @@ public:
   void loadSceneFromDescription(const std::string &path);
 
 public:
-  std::vector<ImplicitSceneMesh> m_implicitMeshes;
+  std::vector<SceneImplicitMesh> m_implicitMeshes;
   std::vector<ScenePolygonMesh> m_polygonMeshes;
   SceneTexture bgTexture;
 

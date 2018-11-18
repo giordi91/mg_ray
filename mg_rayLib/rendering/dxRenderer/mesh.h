@@ -38,15 +38,12 @@ public:
   void translate(float x, float y, float z);
 
 public:
-  std::vector<float> m_vertexs;
-  std::vector<unsigned int> render_index;
-  std::vector<float> m_tangents;
-  unsigned int render_index_size;
+
+  unsigned int m_vertexCount;
   ID3D11Buffer *m_vertexBuffer;
   ID3D11Buffer *m_indexBuffer;
   DirectX::XMMATRIX transform;
   int m_stride;
-  std::vector<unsigned int> m_cpu_vtx_data;
   SurfaceShader* m_shader;
 };
 

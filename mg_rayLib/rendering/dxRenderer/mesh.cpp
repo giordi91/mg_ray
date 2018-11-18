@@ -2,6 +2,7 @@
 #include "mg_rayLib/core/file_utils.h"
 #include "mg_rayLib/rendering/dxRenderer/buffers_utils.h"
 //#include "rendering/dx11_shaders_layout.h"
+#include "mg_rayLib/core/dataManipulationHelper.h"
 #include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/surfaceShader.h"
 #include "middleware/tiny_obj_loader.h"
@@ -15,49 +16,25 @@ void Mesh::load(ID3D11Device *device, tinyobj::attrib_t &attr,
   m_shader = shader;
   // Allocating and copying data
   size_t sz = attr.vertices_ids.size();
-  render_index_size = static_cast<uint32_t>(attr.vertices_ids.size());
-  int STRIDE;
-  m_cpu_vtx_data = attr.vertices_ids;
 
-  STRIDE = 8;
-  m_stride = STRIDE;
-  m_vertexs.resize(sz * STRIDE);
+  m_stride = 8;
   // allocate memory for index buffer
-  render_index.resize(render_index_size);
-  const float *const sourceVtx = attr.vertices.data();
-  const float *const sourceNorm = attr.normals.data();
-  const float *const sourceUv = attr.texcoords.data();
 
-  float *const vtx = m_vertexs.data();
+  const std::unique_ptr<float[]> data =
+      core::dataIO::fromTinyObjToFlatPointNormalUVBuffer(attr, shape,
+                                                         m_vertexCount);
+  std::vector<unsigned int> render_index(m_vertexCount);
   unsigned int *const idx = render_index.data();
-  //#pragma omp parallel for
+#pragma omp parallel for
   for (int i = 0; i < sz; ++i) {
-    const auto vtx_id = attr.vertices_ids[i];
-    const auto uv_id = attr.text_coords_ids[i];
-    const auto n_id = attr.normals_ids[i];
-    const auto curr = i * STRIDE;
-
-    vtx[curr + 0] = sourceVtx[vtx_id * 3];
-    vtx[curr + 1] = sourceVtx[vtx_id * 3 + 1];
-    vtx[curr + 2] = sourceVtx[vtx_id * 3 + 2];
-
-    vtx[curr + 3] = sourceNorm[n_id * 3];
-    vtx[curr + 4] = sourceNorm[n_id * 3 + 1];
-    vtx[curr + 5] = sourceNorm[n_id * 3 + 2];
-
-    vtx[curr + 6] = sourceUv[uv_id * 2];
-    vtx[curr + 7] = sourceUv[uv_id * 2 + 1];
-
     idx[i] = i;
   }
 
-  m_stride = STRIDE;
-
   // creating the buffers
   m_vertexBuffer =
-      getVertexBuffer(device, sz * STRIDE * sizeof(float), m_vertexs.data());
-  m_indexBuffer = getIndexBuffer(device, render_index_size * sizeof(int),
-                                 render_index.data());
+      getVertexBuffer(device, sz * m_stride * sizeof(float), data.get());
+  m_indexBuffer =
+      getIndexBuffer(device, m_vertexCount * sizeof(int), render_index.data());
 }
 
 void Mesh::loadFromFile(ID3D11Device *device, const std::string &path,
@@ -88,8 +65,7 @@ void Mesh::render(ID3D11DeviceContext *deviceContext, Camera3dPivot *camera) {
   // in this case triangles.
   deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-  deviceContext->DrawIndexed(render_index_size, 0, 0);
-  // setting const buffer
+  deviceContext->DrawIndexed(m_vertexCount, 0, 0);
 }
 
 void Mesh::translate(float x, float y, float z) {

@@ -14,8 +14,9 @@ namespace dataIO {
 // super simple function that splat a single shape from tiny obj into a
 // interleaved contiguous buffer
 std::unique_ptr<float[]>
-fromTinyObjToFlatPointNormalUVBuffer(tinyobj::attrib_t &attr,
-                                     tinyobj::shape_t &shape);
+fromTinyObjToFlatPointNormalUVBuffer(const tinyobj::attrib_t &attr,
+                                     const tinyobj::shape_t &shape,
+                                     unsigned int &vertexCount);
 
 } // namespace dataIO
 } // namespace core
