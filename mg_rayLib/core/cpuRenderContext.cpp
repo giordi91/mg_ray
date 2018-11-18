@@ -327,7 +327,7 @@ void CPURenderContext::run() {
   int h = m_settings->height;
   float *const pixels = m_data.get();
 
-  int SPP = 10000;
+  int SPP = 1;
   int maxRecursion = 10;
   float t_min = 0.001f;
   float t_max = 1000.0f;

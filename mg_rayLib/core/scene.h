@@ -9,8 +9,8 @@
 namespace mg_ray {
 namespace core {
 
+enum class SHAPE_TYPE { IMPLICIT, TRIANGLE_SOUP, INVALID };
 enum class IMPLICIT_MESH_TYPE { SPHERE, PLANE, INVALID };
-enum class SHAPE_TYPE { IMPLICIT, POLYGONS, INVALID };
 enum class MATERIAL_TYPE { DIFFUSE, METAL, DIALECTRIC, LIGHT, INVALID };
 // suffix T is only for not having 2D as an enum
 enum class TEXTURE_TYPE { T_2D, INVALID };
@@ -34,6 +34,11 @@ struct ImplicitSceneMesh {
   glm::vec4 data1;
   SceneMaterial material;
 };
+struct ScenePolygonMesh {
+  float *triangles;
+  int triangleCount;
+  SceneMaterial material;
+};
 
 struct SceneTexture {
   TEXTURE_TYPE type;
@@ -50,6 +55,7 @@ public:
 
 public:
   std::vector<ImplicitSceneMesh> m_implicitMeshes;
+  std::vector<ScenePolygonMesh> m_polygonMeshes;
   SceneTexture bgTexture;
 
 private:

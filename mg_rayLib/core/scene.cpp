@@ -1,10 +1,13 @@
 #include "mg_rayLib/core/scene.h"
 #include "mg_rayLib/core/file_utils.h"
 #include "middleware/stb_image.h"
+#include "middleware/tiny_obj_loader.h"
 
 namespace mg_ray {
 namespace core {
 
+// parsing keys definitions, they have their own namespace to be extra careful
+// not to pollute the current namespace, probably overkill but does not hurt
 namespace sceneKeys {
 static const std::string SCENE_KEY_SHAPES = "shapes";
 static const std::string SCENE_KEY_TYPE = "type";
@@ -17,25 +20,27 @@ static const std::string SCENE_KEY_NORMAL = "normal";
 static const std::string SCENE_KEY_IMPLICIT_DATA = "implicitData";
 static const std::string SCENE_KEY_TEXTURE_WIDTH = "width";
 static const std::string SCENE_KEY_TEXTURE_HEIGHT = "height";
-static const std::string SCENE_KEY_TEXTURE_PATH = "path";
+static const std::string SCENE_KEY_PATH = "path";
 static const std::string SCENE_KEY_TEXTURE_BG = "backgroundTexture";
+static const std::string SCENE_KEY_TRIANGLE_DATA = "triangleData";
 static const std::string DEFAULT_STRING;
 static const int DEFAULT_INT = -1;
 static const glm::vec4 DEFAULT_VEC4{0.0f, 0.0f, 0.0f, 0.0f};
 static const glm::vec3 DEFAULT_VEC3{0.0f, 0.0f, 0.0f};
 
 static const std::unordered_map<std::string, SHAPE_TYPE> m_nameToShapeType{
-    {"implicit", SHAPE_TYPE::IMPLICIT}, {"polygons", SHAPE_TYPE::POLYGONS}};
+    {"implicit", SHAPE_TYPE::IMPLICIT},
+    {"triangleSoup", SHAPE_TYPE::TRIANGLE_SOUP}};
 static const std::unordered_map<std::string, IMPLICIT_MESH_TYPE>
-    m_nameToImplicitType{{"sphere", IMPLICIT_MESH_TYPE::SPHERE},
-                         {"plane", IMPLICIT_MESH_TYPE::PLANE}};
+    NAME_TO_IMPLICIT_TYPE{{"sphere", IMPLICIT_MESH_TYPE::SPHERE},
+                          {"plane", IMPLICIT_MESH_TYPE::PLANE}};
 static const std::unordered_map<std::string, MATERIAL_TYPE>
-    m_nameToMaterialType{{"diffuse", MATERIAL_TYPE::DIFFUSE},
-                         {"metal", MATERIAL_TYPE::METAL},
-                         {"dielectric", MATERIAL_TYPE::DIALECTRIC},
-                         {"light", MATERIAL_TYPE::LIGHT}};
+    NAME_TO_MATERIAL_TYPE{{"diffuse", MATERIAL_TYPE::DIFFUSE},
+                          {"metal", MATERIAL_TYPE::METAL},
+                          {"dielectric", MATERIAL_TYPE::DIALECTRIC},
+                          {"light", MATERIAL_TYPE::LIGHT}};
 
-static const std::unordered_map<std::string, TEXTURE_TYPE> nameToTextureType{
+static const std::unordered_map<std::string, TEXTURE_TYPE> NAME_TO_TEXTURE_TYPE{
     {"T_2D", TEXTURE_TYPE::T_2D}};
 } // namespace sceneKeys
 
@@ -54,8 +59,8 @@ IMPLICIT_MESH_TYPE nameToImplicitMesh(const nlohmann::json &jobj) {
   const std::string stype = get_value_if_in_json(
       jobj, sceneKeys::SCENE_KEY_TYPE, sceneKeys::DEFAULT_STRING);
   assert(!stype.empty() && "could not find type in shape being read from file");
-  auto found = sceneKeys::m_nameToImplicitType.find(stype);
-  if (found != sceneKeys::m_nameToImplicitType.end()) {
+  auto found = sceneKeys::NAME_TO_IMPLICIT_TYPE.find(stype);
+  if (found != sceneKeys::NAME_TO_IMPLICIT_TYPE.end()) {
     returnValue = found->second;
   }
   assert(returnValue != IMPLICIT_MESH_TYPE::INVALID);
@@ -78,14 +83,14 @@ T nameToType(const nlohmann::json &jobj,
 }
 
 inline TEXTURE_TYPE getTextureType(const nlohmann::json &jobj) {
-  return nameToType(jobj, sceneKeys::nameToTextureType);
+  return nameToType(jobj, sceneKeys::NAME_TO_TEXTURE_TYPE);
 }
 
 inline SceneTexture loadTextrue(const nlohmann::json &textureJ) {
 
-  TEXTURE_TYPE texType = nameToType(textureJ, sceneKeys::nameToTextureType);
+  TEXTURE_TYPE texType = nameToType(textureJ, sceneKeys::NAME_TO_TEXTURE_TYPE);
   const std::string path = get_value_if_in_json(
-      textureJ, sceneKeys::SCENE_KEY_TEXTURE_PATH, sceneKeys::DEFAULT_STRING);
+      textureJ, sceneKeys::SCENE_KEY_PATH, sceneKeys::DEFAULT_STRING);
 
   assert(!path.empty() && "error loading texture, no path provided");
   // as of now only one texture type is supported
@@ -115,8 +120,8 @@ MATERIAL_TYPE nameToMaterialType(const nlohmann::json &jobj) {
       jobj, sceneKeys::SCENE_KEY_TYPE, sceneKeys::DEFAULT_STRING);
   assert(!stype.empty() &&
          "could not find type in material being read from file");
-  auto found = sceneKeys::m_nameToMaterialType.find(stype);
-  if (found != sceneKeys::m_nameToMaterialType.end()) {
+  auto found = sceneKeys::NAME_TO_MATERIAL_TYPE.find(stype);
+  if (found != sceneKeys::NAME_TO_MATERIAL_TYPE.end()) {
     returnValue = found->second;
   }
   assert(returnValue != MATERIAL_TYPE::INVALID);
@@ -143,7 +148,7 @@ void Scene::loadSceneFromDescription(const std::string &path) {
       processImplicitShape(shape);
       break;
     }
-    case (SHAPE_TYPE::POLYGONS): {
+    case (SHAPE_TYPE::TRIANGLE_SOUP): {
       processPolygonShape(shape);
       break;
     }
@@ -220,7 +225,18 @@ void Scene::processImplicitPlane(const nlohmann::json &jobj) {
       processSceneMaterial(jobj[sceneKeys::SCENE_KEY_MATERIAL])});
 }
 void Scene::processPolygonShape(const nlohmann::json &jobj) {
-  assert(0 && "processing of polygon shape not implemented yet");
+  // for now only supporting objs
+  assertValueInJson(jobj, sceneKeys::SCENE_KEY_TRIANGLE_DATA);
+  auto tdataj = jobj[sceneKeys::SCENE_KEY_TRIANGLE_DATA];
+
+  const std::string path = get_value_if_in_json(
+      tdataj, sceneKeys::SCENE_KEY_PATH, sceneKeys::DEFAULT_STRING);
+
+  std::vector<tinyobj::shape_t> shapes;
+  std::vector<tinyobj::material_t> materials;
+  tinyobj::attrib_t data;
+  std::string err;
+  tinyobj::LoadObj(&data, &shapes, &materials, &err, path.c_str(), 0, true);
 }
 
 } // namespace core
