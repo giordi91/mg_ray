@@ -9,6 +9,7 @@
 #include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
 #include "mg_rayLib/rendering/dxRenderer/mesh.h"
 #include "mg_rayLib/rendering/dxRenderer/surfaceShader.h"
+#include "mg_rayLib/rendering/dxRenderer/uiWidgets.h"
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -86,11 +87,14 @@ private:
   ID3D11Buffer *m_matBuffer;
   SceneMode m_sceneMode;
 
+  //UI and navigation
   int m_oldMouseX;
   int m_oldMouseY;
   bool showUi = false;
   bool previousUi = false;
   static const unsigned int UI_TRIGGER_BUTTON = 192;
+  RenderingSettingsWidget m_renderingWidget;
+
 };
 
 } // namespace dx11

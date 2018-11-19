@@ -286,13 +286,16 @@ void Dx11DebugRenderer::drawUi() {
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.0f);
   {
     if (showUi) {
-      float shine = 22.0f;
-      ImGui::Begin("Shading", &showUi);
-      ImGui::SliderFloat("shine power", &shine, 0.1f,
-                         100.0f); // Edit 1 float as a slider from 0.0f to 1.0f
-                                  // ImGui::End();
-      ImGui::End();
+      //    float shine = 22.0f;
+      //    ImGui::Begin("Shading", &showUi);
+      //    ImGui::SliderFloat("shine power", &shine, 0.1f,
+      //                       100.0f); // Edit 1 float as a slider from 0.0f
+      //                       to 1.0f
+      //                                // ImGui::End();
+      //    ImGui::End();
+      m_renderingWidget.render();
     }
+	m_renderingWidget.initialized(true);
   }
   ImGui::Render();
 }
