@@ -6,10 +6,10 @@
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
 #include "mg_rayLib/rendering/debugRenderer.h"
 #include "mg_rayLib/rendering/dxRenderer/blitShader.h"
-#include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
 #include "mg_rayLib/rendering/dxRenderer/mesh.h"
 #include "mg_rayLib/rendering/dxRenderer/surfaceShader.h"
 #include "mg_rayLib/rendering/dxRenderer/uiWidgets.h"
+#include "mg_rayLib/core/scene.h"
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -29,7 +29,6 @@ class D3DClass;
 class Camera3dPivot;
 class Mesh;
 class SurfaceShader;
-class ImplicitSurface;
 class Texture2D;
 
 class Dx11DebugRenderer : public rendering::DebugRenderer {
@@ -69,9 +68,8 @@ private:
   struct DebugMesh {
     Mesh mesh;
     core::SceneMaterial material;
+	DirectX::XMMATRIX m_transform;
   };
-  enum class SceneMode { IMPLICIT, POLYGONS };
-
   foundation::DxWindow *m_window = nullptr;
   D3DClass *m_d3dClass;
   ID3D11Device *m_device;
@@ -82,12 +80,10 @@ private:
   std::unique_ptr<Mesh> plane;
   std::unique_ptr<SurfaceShader> m_shader;
   std::unique_ptr<BlitShader> m_blitShader;
-  std::vector<ImplicitSurface> m_implicitMeshes;
   std::vector<DebugMesh> m_polygonMeshes;
   Texture2D *m_raytracedTexture = nullptr;
   ID3D11SamplerState *m_linearSampler = nullptr;
   ID3D11Buffer *m_matBuffer;
-  SceneMode m_sceneMode;
 
   //UI and navigation
   int m_oldMouseX;

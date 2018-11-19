@@ -11,7 +11,6 @@
 #include "mg_rayLib/rendering/dxRenderer/buffers_utils.h"
 #include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
-#include "mg_rayLib/rendering/dxRenderer/implicitSurface.h"
 #include "mg_rayLib/rendering/dxRenderer/texture2D.h"
 #include <iostream>
 
@@ -97,6 +96,7 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
   m_blitShader = std::make_unique<BlitShader>();
   m_blitShader->Initialize(m_d3dClass, "");
 
+  // initialize the sampler needed for the blit
   m_linearSampler = createLinearSampler(m_device);
 
   // lets load the needed implicit geometries
@@ -106,7 +106,7 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
   m_matBuffer =
       getConstantBuffer(m_d3dClass->getDevice(), sizeof(Dx11Material));
 
-  //initialize ui
+  // initialize ui
   m_renderingWidget.initialize(settings);
   return true;
 }
@@ -124,10 +124,14 @@ void Dx11DebugRenderer::loadImplicitScene(core::Scene *scene) {
       auto scale = DirectX::XMMatrixScaling(sceneM.data1.w, sceneM.data1.w,
                                             sceneM.data1.w);
       auto transform = DirectX::XMMatrixMultiply(scale, translate);
-      ImplicitSurface surf;
-      surf.initialize(m_d3dClass->getDevice(), sphere.get(), transform,
-                      sceneM.material);
-      m_implicitMeshes.push_back(surf);
+      DebugMesh mesh;
+      mesh.material = sceneM.material;
+      mesh.mesh = *(sphere.get());
+      mesh.m_transform = transform;
+      // surf.initialize(m_d3dClass->getDevice(), sphere.get(), transform,
+      //                sceneM.material);
+      m_polygonMeshes.push_back(mesh);
+      // m_implicitMeshes.push_back(surf);
     } else {
 
       // in the case of a plane our life is a bit more complicated
@@ -162,13 +166,13 @@ void Dx11DebugRenderer::loadImplicitScene(core::Scene *scene) {
         transform = DirectX::XMMatrixMultiply(rotation, translate);
       }
 
-      ImplicitSurface surf;
-      surf.initialize(m_d3dClass->getDevice(), plane.get(), transform,
-                      sceneM.material);
-      m_implicitMeshes.push_back(surf);
+      DebugMesh mesh;
+      mesh.material = sceneM.material;
+      mesh.mesh = *(plane.get());
+      mesh.m_transform = transform;
+      m_polygonMeshes.push_back(mesh);
     }
   }
-  m_sceneMode = SceneMode::IMPLICIT;
 }
 
 void Dx11DebugRenderer::loadTrianglesScene(core::Scene *scene) {
@@ -184,7 +188,6 @@ void Dx11DebugRenderer::loadTrianglesScene(core::Scene *scene) {
         sceneMesh.triangleCount, m_shader.get());
     m_polygonMeshes.emplace_back(DebugMesh{mesh, sceneMesh.material});
   }
-  m_sceneMode = SceneMode::POLYGONS;
 }
 bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {
 
@@ -237,14 +240,13 @@ void Dx11DebugRenderer::getSceneCamera(core::SceneCamera *camera) {
   DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4 *)(&camera->view[0].x), view);
 }
 
-void Dx11DebugRenderer::setPreRaytraceNotification()
-{
-	m_renderingLabel.show(true);
+void Dx11DebugRenderer::setPreRaytraceNotification() {
+  // this will make the rendering label to show
+  m_renderingLabel.show(true);
 }
 
-void Dx11DebugRenderer::setPostRaytraceNotification()
-{
-	m_renderingLabel.show(false);
+void Dx11DebugRenderer::setPostRaytraceNotification() {
+  m_renderingLabel.show(false);
 }
 
 void Dx11DebugRenderer::setupMaterial(int i) {
@@ -281,7 +283,6 @@ void Dx11DebugRenderer::setupMaterial(int i) {
   HRESULT result;
   D3D11_MAPPED_SUBRESOURCE mappedResource;
   ObjectBufferDef *dataPtr;
-  unsigned int bufferNumber;
 
   ID3D11DeviceContext *deviceContext = m_d3dClass->GetDeviceContext();
   result = m_d3dClass->GetDeviceContext()->Map(
@@ -299,16 +300,8 @@ void Dx11DebugRenderer::drawUi() {
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.0f);
   {
     if (showUi) {
-      //    float shine = 22.0f;
-      //    ImGui::Begin("Shading", &showUi);
-      //    ImGui::SliderFloat("shine power", &shine, 0.1f,
-      //                       100.0f); // Edit 1 float as a slider from 0.0f
-      //                       to 1.0f
-      //                                // ImGui::End();
-      //    ImGui::End();
       m_renderingWidget.render();
     }
-	m_renderingWidget.initialized(true);
   }
   m_renderingLabel.render();
   ImGui::Render();
@@ -344,23 +337,13 @@ void Dx11DebugRenderer::render() {
     return;
   }
 
-  if (m_sceneMode == SceneMode::IMPLICIT) {
-    // draw debug geometries to make sure everything works
-    for (int i = 0; i < m_implicitMeshes.size(); ++i) {
-      m_implicitMeshes[i].render(m_d3dClass->GetDeviceContext(), m_camera);
-    }
-  } else {
-    for (int i = 0; i < m_polygonMeshes.size(); ++i) {
-      m_camera->setCameraMatrixToShader(DirectX::XMMatrixIdentity());
-      setupMaterial(i);
-      m_polygonMeshes[i].mesh.render(m_d3dClass->GetDeviceContext(), m_camera);
-    }
+  // draw debug geometries to make sure everything works
+  for (int i = 0; i < m_polygonMeshes.size(); ++i) {
+    m_camera->setCameraMatrixToShader(m_polygonMeshes[i].m_transform);
+    setupMaterial(i);
+    m_polygonMeshes[i].mesh.render(m_d3dClass->GetDeviceContext(), m_camera);
   }
   drawUi();
-  // draw ui
-  // context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), (void
-  // **)&annot); annot->BeginEvent(L"Debug UI draw"); drawImGuiTemp(this,
-  // showUi); annot->EndEvent();
 }
 void Dx11DebugRenderer::loadMeshes() {
   sphere = std::make_unique<Mesh>();
@@ -376,7 +359,6 @@ void Dx11DebugRenderer::handleCameraMovement() {
   float deltaX = float(m_oldMouseX - m_input->m_mouse_posX);
   float deltaY = float(m_oldMouseY - m_input->m_mouse_posY);
   if (m_input->m_mouse[0] == 1) {
-    // m_camera->panCamera(deltaX, deltaY);
     m_camera->rotCamera(deltaX, deltaY);
   } else if (m_input->m_mouse[3] == 1) {
     m_camera->panCamera(deltaX, deltaY);

@@ -2,7 +2,7 @@
 
 namespace mg_ray {
 namespace core {
-class GlobalSettings;
+struct GlobalSettings;
 }
 namespace rendering {
 namespace dx11 {
@@ -14,7 +14,6 @@ public:
 
   inline void show(bool value) { showUi = value; }
   inline void collapsed(bool value) { collapsedUi = value; }
-  inline void initialized(bool value) { initUi = value; }
 
   inline bool isShown() const { return showUi; }
   inline bool isCollapsed() const { return collapsedUi; }
