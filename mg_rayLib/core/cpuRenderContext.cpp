@@ -327,10 +327,10 @@ void CPURenderContext::run() {
   int h = m_settings->height;
   float *const pixels = m_data.get();
 
-  int SPP = 1;
-  int maxRecursion = 10;
-  float t_min = 0.001f;
-  float t_max = 1000.0f;
+  int SPP = m_settings->SPP;
+  int maxRecursion = m_settings->maxRecursion;
+  float t_min = m_settings->tMin;
+  float t_max = m_settings->tMax;
 
 #pragma omp parallel for
   for (int y = 0; y < h; ++y) {

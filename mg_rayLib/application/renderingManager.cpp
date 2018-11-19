@@ -70,22 +70,49 @@ void RenderingManager::MSWindowsRenderLoop() {
       }
       m_clearScreenFromRenderDown = m_input->IsKeyDown(VK_BACK);
 
-      // shouldTriggerRaytraceRender = false;
-      if (m_shouldTriggerRaytraceRender) {
-        core::SceneCamera camera;
-		m_debugRenderer->getSceneCamera(&camera);
-		m_context->setSceneCamera(&camera);
-        m_context->run();
-        core::TextureOutput output = m_context->getTextureOutput();
-        m_debugRenderer->setRaytraceTexture(&output);
-        m_shouldTriggerRaytraceRender = false;
-      }
+      handleRaytracing();
       if (m_shouldClearRaytraceRender) {
         m_debugRenderer->clearRaytraceTexture();
         m_shouldClearRaytraceRender = false;
       }
 
       m_debugRenderer->frame();
+    }
+  }
+}
+
+void RenderingManager::handleRaytracing() {
+
+  if (m_shouldTriggerRaytraceRender) {
+    if (m_settings.computationType == core::ComputationType::FULL_FRAME) {
+      // here we schedule the render for next
+      // frame, giving the change for the ui to
+      // render any extra information pre-render needed
+      if (!m_preRaytraceNotificationSent) {
+        m_debugRenderer->setPreRaytraceNotification();
+        m_preRaytraceNotificationSent = true;
+        return;
+      }
+	  else  {
+        core::SceneCamera camera;
+        m_debugRenderer->getSceneCamera(&camera);
+        m_context->setSceneCamera(&camera);
+        m_context->run();
+        core::TextureOutput output = m_context->getTextureOutput();
+        m_debugRenderer->setRaytraceTexture(&output);
+        m_debugRenderer->setPostRaytraceNotification();
+        m_shouldTriggerRaytraceRender = false;
+        m_preRaytraceNotificationSent= false;
+      }
+
+    } else {
+      core::SceneCamera camera;
+      m_debugRenderer->getSceneCamera(&camera);
+      m_context->setSceneCamera(&camera);
+      m_context->run();
+      core::TextureOutput output = m_context->getTextureOutput();
+      m_debugRenderer->setRaytraceTexture(&output);
+      m_shouldTriggerRaytraceRender = false;
     }
   }
 }

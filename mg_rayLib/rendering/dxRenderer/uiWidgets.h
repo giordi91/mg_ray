@@ -1,7 +1,9 @@
 #pragma once
-#include <DirectXMath.h>
 
 namespace mg_ray {
+namespace core {
+class GlobalSettings;
+}
 namespace rendering {
 namespace dx11 {
 class UiWidget {
@@ -24,20 +26,26 @@ protected:
   bool initUi = false;
 };
 
-
-class RenderingSettingsWidget: public UiWidget {
+class RenderingSettingsWidget : public UiWidget {
 public:
   RenderingSettingsWidget() : UiWidget(){};
+  void initialize(core::GlobalSettings *settings);
   ~RenderingSettingsWidget() = default;
 
   void render() override;
 
 private:
-  float m_aperture = 0.1f;
-  float m_focusDist= 10.0f;
-  int m_SPP = 10;
   bool m_rangeExtender = false;
-  int m_rangeMultiplier= 1;
+  int m_rangeMultiplier = 1;
+  core::GlobalSettings* m_settings;
+};
+
+class RenderingLabel: public UiWidget {
+public:
+  RenderingLabel() : UiWidget(){};
+  ~RenderingLabel() = default;
+
+  void render() override;
 
 };
 } // namespace dx11

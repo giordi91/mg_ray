@@ -29,6 +29,8 @@ private:
 #ifdef WIN32
 	void MSWindowsRenderLoop();
 #endif
+private:
+	void handleRaytracing();
 
 private:
   core::GlobalSettings m_settings;
@@ -40,6 +42,7 @@ private:
   bool m_shouldClearRaytraceRender= false;
   bool m_renderButtonDown = false;
   bool m_clearScreenFromRenderDown = false;
+  bool m_preRaytraceNotificationSent = false;
 
 
 

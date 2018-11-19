@@ -28,7 +28,9 @@ public:
   virtual foundation::Window *getWindow() const = 0;
   virtual void setRaytraceTexture(core::TextureOutput *texture) = 0;
   virtual void clearRaytraceTexture() = 0;
-  virtual void getSceneCamera(core::SceneCamera* camera) =0;
+  virtual void getSceneCamera(core::SceneCamera *camera) = 0;
+  virtual void setPreRaytraceNotification() = 0;
+  virtual void setPostRaytraceNotification() = 0;
   // main render loop
   virtual void frame() = 0;
 

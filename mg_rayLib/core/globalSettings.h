@@ -17,6 +17,14 @@ struct GlobalSettings {
   HardwareType hardwareType = HardwareType::CPU;
   ComputationType computationType = ComputationType::FULL_FRAME;
   char *name = "Renderer 1.0v";
+  //rendering settings
+  int SPP = 10;
+  int maxRecursion = 10;
+  float aperture = 0.01f;
+  float focusDistance = 10.0f;
+  float vFov = 45.0f;
+  float tMin = 0.001f;
+  float tMax = 1000.0f;
 };
 } // namespace core
 } // namespace mg_ray

@@ -44,6 +44,8 @@ public:
   void setRaytraceTexture(core::TextureOutput *texture) override;
   void clearRaytraceTexture() override;
   void getSceneCamera(core::SceneCamera *camera) override;
+  void setPreRaytraceNotification() override;
+  void setPostRaytraceNotification() override;
   // main render loop
   void frame() override;
 
@@ -94,6 +96,7 @@ private:
   bool previousUi = false;
   static const unsigned int UI_TRIGGER_BUTTON = 192;
   RenderingSettingsWidget m_renderingWidget;
+  RenderingLabel m_renderingLabel;
 
 };
 

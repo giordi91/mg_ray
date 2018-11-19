@@ -105,6 +105,9 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
   // initialize constant buffer used to draw polygonal meshes
   m_matBuffer =
       getConstantBuffer(m_d3dClass->getDevice(), sizeof(Dx11Material));
+
+  //initialize ui
+  m_renderingWidget.initialize(settings);
   return true;
 }
 
@@ -223,15 +226,25 @@ void Dx11DebugRenderer::clearRaytraceTexture() {
   }
 }
 void Dx11DebugRenderer::getSceneCamera(core::SceneCamera *camera) {
-  camera->vFov = 45.0f;
-  camera->aperture = 0.1f;
-  camera->focusDistance = 10;
+  camera->vFov = m_settings->vFov;
+  camera->aperture = m_settings->aperture;
+  camera->focusDistance = m_settings->focusDistance;
   DirectX::XMMATRIX view =
       m_camera->getViewInverse(DirectX::XMMatrixIdentity());
   // copying the camera to the right place we need, aint pretty but it s faster
   // than jump around between different datatypes, we just have 16 contiguos
   // floats
   DirectX::XMStoreFloat4x4((DirectX::XMFLOAT4X4 *)(&camera->view[0].x), view);
+}
+
+void Dx11DebugRenderer::setPreRaytraceNotification()
+{
+	m_renderingLabel.show(true);
+}
+
+void Dx11DebugRenderer::setPostRaytraceNotification()
+{
+	m_renderingLabel.show(false);
 }
 
 void Dx11DebugRenderer::setupMaterial(int i) {
@@ -297,6 +310,7 @@ void Dx11DebugRenderer::drawUi() {
     }
 	m_renderingWidget.initialized(true);
   }
+  m_renderingLabel.render();
   ImGui::Render();
 }
 void Dx11DebugRenderer::handleUiInput() {
