@@ -62,7 +62,11 @@ ENDMACRO(SOURCE_GROUP_BY_FOLDER)
 
 SOURCE_GROUP_BY_FOLDER(mg_rayLib)
     #adding the executable
-    add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} "../middleware/tiny_obj_loader.cc" ${INCLUDES_FILES})
+    add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} 
+	"../middleware/tiny_obj_loader.cc" 
+	"../middleware/imgui/imgui.cpp" 
+	"../middleware/imgui/imgui_draw.cpp" 
+	${INCLUDES_FILES})
 
 
     # Link against LLVM libraries

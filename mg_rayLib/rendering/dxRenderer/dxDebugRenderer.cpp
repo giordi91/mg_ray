@@ -7,6 +7,7 @@
 #include "mg_rayLib/core/scene.h"
 #include "mg_rayLib/foundation/MSWindows/dxWindow.h"
 #include "mg_rayLib/foundation/input.h"
+#include "mg_rayLib/rendering/dxRenderer/ImGuiUIdx11.h"
 #include "mg_rayLib/rendering/dxRenderer/buffers_utils.h"
 #include "mg_rayLib/rendering/dxRenderer/camera.h"
 #include "mg_rayLib/rendering/dxRenderer/d3dclass.h"
@@ -14,6 +15,8 @@
 #include "mg_rayLib/rendering/dxRenderer/texture2D.h"
 #include <iostream>
 
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg,
+                                              WPARAM wParam, LPARAM lParam);
 namespace mg_ray {
 
 namespace rendering {
@@ -75,6 +78,10 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
                          D3DVendor::ALL);
   m_deviceContext = m_d3dClass->GetDeviceContext();
   m_device = m_d3dClass->getDevice();
+
+  // initialize imgui ui
+  ImGui_ImplDX11_Init(m_window->getHWND(), m_device, m_deviceContext);
+  ImGui::StyleColorsDark();
 
   // create the camera
   m_camera = new Camera3dPivot(m_d3dClass, static_cast<float>(settings->width),
@@ -273,6 +280,29 @@ void Dx11DebugRenderer::setupMaterial(int i) {
   deviceContext->PSSetConstantBuffers(0, 1, &m_matBuffer);
 }
 
+void Dx11DebugRenderer::drawUi() {
+  ImGui_ImplDX11_NewFrame();
+  // temp imgui
+  ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.0f);
+  {
+    if (showUi) {
+      float shine = 22.0f;
+      ImGui::Begin("Shading", &showUi);
+      ImGui::SliderFloat("shine power", &shine, 0.1f,
+                         100.0f); // Edit 1 float as a slider from 0.0f to 1.0f
+                                  // ImGui::End();
+      ImGui::End();
+    }
+  }
+  ImGui::Render();
+}
+void Dx11DebugRenderer::handleUiInput() {
+  if (m_input->IsKeyDown(UI_TRIGGER_BUTTON) == false && previousUi == true) {
+    showUi = !showUi;
+  }
+  previousUi = m_input->IsKeyDown(UI_TRIGGER_BUTTON);
+}
+
 void Dx11DebugRenderer::frame() {
 
   m_d3dClass->beginScene(0.5f, 0.5f, 0.5f, 1.0f);
@@ -281,6 +311,7 @@ void Dx11DebugRenderer::frame() {
 }
 void Dx11DebugRenderer::render() {
   handleCameraMovement();
+  handleUiInput();
   m_camera->Render();
 
   if (m_raytracedTexture != nullptr) {
@@ -292,6 +323,7 @@ void Dx11DebugRenderer::render() {
     m_deviceContext->IASetPrimitiveTopology(
         D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
     m_deviceContext->Draw(4, 0);
+    drawUi();
     return;
   }
 
@@ -307,6 +339,11 @@ void Dx11DebugRenderer::render() {
       m_polygonMeshes[i].mesh.render(m_d3dClass->GetDeviceContext(), m_camera);
     }
   }
+  drawUi();
+  // draw ui
+  // context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), (void
+  // **)&annot); annot->BeginEvent(L"Debug UI draw"); drawImGuiTemp(this,
+  // showUi); annot->EndEvent();
 }
 void Dx11DebugRenderer::loadMeshes() {
   sphere = std::make_unique<Mesh>();
@@ -315,9 +352,9 @@ void Dx11DebugRenderer::loadMeshes() {
   plane->loadFromFile(m_device, "plane.obj", m_shader.get());
 }
 void Dx11DebugRenderer::handleCameraMovement() {
-  // if (ImGui::GetIO().WantCaptureMouse) {
-  //  return;
-  //}
+  if (ImGui::GetIO().WantCaptureMouse) {
+    return;
+  }
 
   float deltaX = float(m_oldMouseX - m_input->m_mouse_posX);
   float deltaY = float(m_oldMouseY - m_input->m_mouse_posY);
@@ -349,13 +386,9 @@ LRESULT CALLBACK Dx11DebugRenderer::MessageHandler(HWND hwnd, UINT umsg,
                                                    WPARAM wparam,
                                                    LPARAM lparam) {
 
-  // if (m_ui_handler != nullptr) {
-  //  bool res = m_ui_handler(hwnd, umsg, wparam, lparam);
-  //  if (res) { return true; };
-  //}
-  // if (ImGui_ImplWin32_WndProcHandler(hwnd, umsg, wparam, lparam)) {
-  //  return true;
-  //}
+  if (ImGui_ImplWin32_WndProcHandler(hwnd, umsg, wparam, lparam)) {
+    return true;
+  }
 
   switch (umsg) {
   case WM_SIZE: {

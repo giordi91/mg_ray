@@ -59,6 +59,8 @@ private:
   void handleCameraMovement();
   Texture2D *getDx11TextureFromCPUData(core::TextureOutput *texture);
   void setupMaterial(int i);
+  void drawUi();
+  void handleUiInput();
 
 private:
   struct DebugMesh {
@@ -86,6 +88,9 @@ private:
 
   int m_oldMouseX;
   int m_oldMouseY;
+  bool showUi = false;
+  bool previousUi = false;
+  static const unsigned int UI_TRIGGER_BUTTON = 192;
 };
 
 } // namespace dx11

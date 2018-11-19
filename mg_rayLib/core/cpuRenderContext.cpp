@@ -352,6 +352,7 @@ void CPURenderContext::run() {
       for (int s = 0; s < SPP; ++s) {
         glm::vec3 attenuation{0.0f, 0.0f, 0.0f};
 
+        // different camera lenses
         // getRay(x, y, p, ray, &m_camera, m_settings);
         // getRayInSubPixel(x, y, 0.0f, 0.0f, p, ray, &m_camera, m_settings,
         // rnd);
