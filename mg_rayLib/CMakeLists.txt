@@ -61,7 +61,8 @@ project(mg_rayLib)
 ENDMACRO(SOURCE_GROUP_BY_FOLDER)
 
 SOURCE_GROUP_BY_FOLDER(mg_rayLib)
-    #adding the executable
+
+    #adding the library
     add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} 
 	"../middleware/tiny_obj_loader.cc" 
 	"../middleware/imgui/imgui.cpp" 
@@ -69,8 +70,6 @@ SOURCE_GROUP_BY_FOLDER(mg_rayLib)
 	${INCLUDES_FILES})
 
 
-    # Link against LLVM libraries
-    #target_link_libraries(${PROJECT_NAME} ${llvm_libs})
 
     #enabling clang tidy
     #enable_clang_tidy_for_project()

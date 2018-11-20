@@ -1,4 +1,5 @@
-#include "cpuRenderContext.h"
+#include "mg_rayLib/core/CPU/cpuRenderContext.h"
+#include "mg_rayLib/core/CPU/cameraRay.h"
 #include "mg_rayLib/core/globalSettings.h"
 #include "mg_rayLib/foundation/window.h"
 #include "middleware/glm/glm.hpp"
@@ -21,115 +22,23 @@ bool CPURenderContext::loadScene(Scene *scene) {
   // as of now, the high level definition is enough for us to work
   // with, we only use implicit scenes no need to worry about anything else
   m_scene = scene;
+  // if we have implicit meshes we process only those, we don't
+  // handle the case of polygons and implicit shapes together
+  if (m_scene->m_implicitMeshes.size() == 0) {
+    // since no implicit shapes, we try to process polys
+    // meshes comes in a PositionNormalUVBuffer layout,
+    // for a total of 8 float each vertex, we need to do
+    // two things, first extract the positions only and next
+    // if multiple geos are provided we need to put them
+    // in a single buffer
+    int count = m_scene->m_polygonMeshes[0].triangleCount;
+    std::vector<float> data(count * 3);
+    const float *sourceData = m_scene->m_polygonMeshes[0].triangles.get();
+
+    // now that we have the data we can build the bvh
+    m_bvh.init(&m_scene->m_polygonMeshes[0]);
+  }
   return true;
-}
-
-void getRay(int x, int y, glm::vec3 &point, glm::vec3 &ray,
-            const SceneCamera *camera, const GlobalSettings *settings) {
-
-  float rowF = ((float)y) / (float)settings->height;
-  float colF = ((float)x) / (float)settings->width;
-  // compute the camera ray
-  float theta = (float)(camera->vFov * 3.14 / 180.0);
-  float halfHeight = (float)tanf(theta * 0.5);
-  float halfWidth = halfHeight * (settings->width / settings->height);
-
-  const float *v = &camera->view[0].x;
-  glm::vec3 view{v[8], v[9], v[10]};
-  glm::vec3 up{v[4], v[5], v[6]};
-  glm::vec3 cross{v[0], v[1], v[2]};
-  glm::vec3 pos{v[12], v[13], v[14]};
-
-  glm::vec3 lowerLeft = (pos - up * halfHeight) - (cross * halfWidth - view);
-  glm::vec3 vertical = up * (2.0f * halfHeight * rowF);
-  glm::vec3 horizontal = cross * 2.0f * halfWidth * colF;
-  ray = lowerLeft + (vertical + horizontal) - pos;
-  ray = glm::normalize(ray);
-  point = pos;
-}
-glm::vec3 randomInUnitDisc(LCG &rnd) {
-  glm::vec3 p;
-  do {
-    p = 2.0f * rnd.nextVec3() - glm::vec3(1.0f, 1.0f, 1.0f);
-  } while (glm::dot(p, p) >= 1.0f);
-  return p;
-}
-
-void getRayInSubPixelWithThinLens(int x, int y, glm::vec3 &pt, glm::vec3 &ray,
-                                  const SceneCamera *camera,
-                                  const GlobalSettings *settings, LCG &rnd) {
-
-  float rowF = ((float)y + rnd.next()) / (float)settings->height;
-  float colF = ((float)x + rnd.next()) / (float)settings->width;
-
-  float lensRadius = camera->aperture * 0.5f;
-
-  // compute the camera ray
-  float theta = (float)(camera->vFov * 3.14 / 180.0);
-  float halfHeight = (float)tanf(theta * 0.5);
-  float halfWidth = halfHeight * (settings->width / settings->height);
-
-  const float *v = &camera->view[0].x;
-  glm::vec3 view{v[8], v[9], v[10]};
-  glm::vec3 up{v[4], v[5], v[6]};
-  glm::vec3 cross{v[0], v[1], v[2]};
-  glm::vec3 pos{v[12], v[13], v[14]};
-
-  float focusDist = camera->focusDistance;
-  glm::vec3 lowerLeft = (pos - up * halfHeight * focusDist) -
-                        (cross * halfWidth * focusDist - view * focusDist);
-  glm::vec3 vertical = up * (2.0f * halfHeight * rowF) * focusDist;
-  glm::vec3 horizontal = (cross * 2.0f * halfWidth * colF) * focusDist;
-
-  // float3 lowerLeft = pos - up * halfHeight*focusDist - cross * halfWidth
-  // *focusDist - view*focusDist; float3 vertical = up * (2.0f * halfHeight *
-  // rowF)*focusDist; float3 horizontal = (cross * 2.0f * halfWidth *
-  // colF)*focusDist;
-
-  glm::vec3 rd = lensRadius * randomInUnitDisc(rnd);
-  glm::vec3 offset;
-  offset.x = rowF * rd.x;
-  offset.y = colF * rd.y;
-  offset.z = 0.0f;
-
-  ray = lowerLeft + (vertical + horizontal) - pos - offset;
-  ray = glm::normalize(ray);
-  pt = pos + offset;
-}
-
-void getRayInSubPixel(int x, int y, float aperture, float focusDist,
-                      glm::vec3 &point, glm::vec3 &ray,
-                      const SceneCamera *camera, const GlobalSettings *settings,
-                      LCG &rnd) {
-  float rowF = ((float)y + rnd.next()) / (float)settings->height;
-  float colF = ((float)x + rnd.next()) / (float)settings->width;
-
-  float lensRadius = aperture * 0.5f;
-
-  // compute the camera ray
-  float theta = (float)(camera->vFov * 3.14 / 180.0);
-  float halfHeight = (float)tanf(theta * 0.5);
-  float halfWidth = halfHeight * (settings->width / settings->height);
-
-  const float *v = &camera->view[0].x;
-  glm::vec3 view{v[8], v[9], v[10]};
-  glm::vec3 up{v[4], v[5], v[6]};
-  glm::vec3 cross{v[0], v[1], v[2]};
-  glm::vec3 pos{v[12], v[13], v[14]};
-
-  glm::vec3 lowerLeft = (pos - up * halfHeight) - (cross * halfWidth - view);
-  glm::vec3 vertical = up * (2.0f * halfHeight * rowF);
-  glm::vec3 horizontal = cross * 2.0f * halfWidth * colF;
-
-  glm::vec3 rd = lensRadius * randomInUnitDisc(rnd);
-  glm::vec3 offset;
-  offset.x = rowF * rd.x;
-  offset.y = colF * rd.y;
-  offset.z = 0.0f;
-
-  ray = lowerLeft + (vertical + horizontal) - pos - offset;
-  ray = glm::normalize(ray);
-  point = pos + offset;
 }
 
 struct HitRecord {
@@ -231,14 +140,6 @@ inline glm::vec3 sampleBGTexture(int x, int y, const SceneTexture &tex) {
   return glm::vec3{r, g, b};
 }
 
-glm::vec3 randomInUnitSphere(LCG &rnd) {
-  glm::vec3 p;
-  do {
-    p = 2.0f * rnd.nextVec3() - glm::vec3(1.0f, 1.0f, 1.0f);
-  } while (dot(p, p) >= 1.0f);
-  return p;
-}
-
 inline glm::vec3 reflect(const glm::vec3 I, glm::vec3 N) {
   return I - 2.0f * glm::dot(I, N) * N;
 }
@@ -262,7 +163,7 @@ inline float schlick(float cosine, float refIdx) {
 
 void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
                      HitRecord *rec, glm::vec3 &outPos, glm::vec3 &outRay,
-                     glm::vec3 &attenuation, LCG &rnd,
+                     glm::vec3 &attenuation, PseudoRandom &rnd,
                      SceneImplicitMesh *meshes) {
   switch (meshes[rec->hitIndex].material.type) {
   case (MATERIAL_TYPE::DIFFUSE): {
@@ -322,7 +223,9 @@ void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
   }
   }
 }
-void CPURenderContext::run() {
+
+void CPURenderContext::renderImplicit() {
+
   int w = m_settings->width;
   int h = m_settings->height;
   float *const pixels = m_data.get();
@@ -331,31 +234,24 @@ void CPURenderContext::run() {
   int maxRecursion = m_settings->maxRecursion;
   float t_min = m_settings->tMin;
   float t_max = m_settings->tMax;
-
 #pragma omp parallel for
   for (int y = 0; y < h; ++y) {
-    LCG rnd(y, 324);
+    PseudoRandom rnd(y, 324);
     glm::vec3 p;
     glm::vec3 ray;
     glm::vec3 posNext;
     glm::vec3 rayNext;
-    glm::vec3 attenuation;
     glm::vec3 newAtt;
-    glm::vec3 color;
 
     HitRecord rec;
     for (int x = 0; x < w; ++x) {
 
       int id = (y * w + x) * 4;
-      color = glm::vec3{0.0f, 0.0f, 0.0f};
+      auto color = glm::vec3{0.0f, 0.0f, 0.0f};
 
       for (int s = 0; s < SPP; ++s) {
         glm::vec3 attenuation{0.0f, 0.0f, 0.0f};
 
-        // different camera lenses
-        // getRay(x, y, p, ray, &m_camera, m_settings);
-        // getRayInSubPixel(x, y, 0.0f, 0.0f, p, ray, &m_camera, m_settings,
-        // rnd);
         getRayInSubPixelWithThinLens(x, y, p, ray, &m_camera, m_settings, rnd);
 
         trace(t_min, t_max, p, ray, m_scene->m_implicitMeshes.data(),
@@ -416,6 +312,58 @@ void CPURenderContext::run() {
 
     } // column
   }   // rows
+}
+
+void CPURenderContext::renderPolygons() {
+
+  int w = m_settings->width;
+  int h = m_settings->height;
+  float *const pixels = m_data.get();
+
+  int SPP = m_settings->SPP;
+  int maxRecursion = m_settings->maxRecursion;
+  float t_min = m_settings->tMin;
+  float t_max = m_settings->tMax;
+#pragma omp parallel for
+  for (int y = 0; y < h; ++y) {
+    PseudoRandom rnd(y, 324);
+    glm::vec3 p;
+    glm::vec3 ray;
+    glm::vec3 posNext;
+    glm::vec3 rayNext;
+    glm::vec3 newAtt;
+    glm::vec3 color;
+
+    HitRecord rec;
+    for (int x = 0; x < w; ++x) {
+      int id = (y * w + x) * 4;
+
+      getRayInSubPixelWithThinLens(x, y, p, ray, &m_camera, m_settings, rnd);
+      float outT = -1.0f;
+      unsigned int outFaceId = 0;
+      float u, v;
+      bool hit = m_bvh.intersect(p, ray, outT, outFaceId, u, v, false);
+      if (hit) {
+        color.x = 1.0f;
+        color.y = 0.0f;
+        color.z = 0.0f;
+      } else {
+        color = sampleBGTexture(x, y, m_scene->bgTexture);
+      }
+      pixels[id + 0] = color.x;
+      pixels[id + 1] = color.y;
+      pixels[id + 2] = color.z;
+    }
+  }
+}
+
+void CPURenderContext::run() {
+
+  if (m_scene->m_implicitMeshes.size() > 0) {
+    renderImplicit();
+  } else {
+    renderPolygons();
+  }
 }
 
 void CPURenderContext::cleanup() {}

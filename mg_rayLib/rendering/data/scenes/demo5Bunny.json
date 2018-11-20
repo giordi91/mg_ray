@@ -1,0 +1,30 @@
+{
+  "shapes": [
+    {
+      "type": "triangleSoup",
+      "triangleData": {
+        "path" :  "geometries/bunny.obj"
+      },
+      "material": {
+        "albedo": [ 0.8, 0.1, 0.05 ],
+        "roughness": 0.0,
+        "type": "diffuse"
+      }
+    },
+    {
+      "type": "triangleSoup",
+      "triangleData": {
+        "path" :  "geometries/plane.obj"
+      },
+      "material": {
+        "albedo": [ 0.5, 0.5, 0.5 ],
+        "roughness": 0.0,
+        "type": "diffuse"
+      }
+    }
+  ],
+  "backgroundTexture": {
+    "type": "T_2D",
+    "path": "textures/skyBG.png"
+  }
+}

@@ -109,7 +109,7 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
   // initialize ui
   m_renderingWidget.initialize(settings);
   m_renderingLabel.initialize(settings);
-  //m_renderingLabel.show(true);
+  // m_renderingLabel.show(true);
   return true;
 }
 
@@ -188,7 +188,8 @@ void Dx11DebugRenderer::loadTrianglesScene(core::Scene *scene) {
     mesh.initFromFlatBufferPosNormalUV8(
         m_d3dClass->getDevice(), sceneMesh.triangles.get(),
         sceneMesh.triangleCount, m_shader.get());
-    m_polygonMeshes.emplace_back(DebugMesh{mesh, sceneMesh.material});
+    m_polygonMeshes.emplace_back(
+        DebugMesh{mesh, sceneMesh.material, DirectX::XMMatrixIdentity()});
   }
 }
 bool Dx11DebugRenderer::initializeDebugScene(core::Scene *scene) {

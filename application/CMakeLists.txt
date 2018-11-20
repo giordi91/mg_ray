@@ -25,6 +25,7 @@ project(mg_rayApplication)
     #add_definitions(${LLVM_DEFINITIONS})
 
     include_directories(${CMAKE_SOURCE_DIR} )
+	link_directories(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/middleware/tbb/lib)
     #defining standard compiling flags
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_CXX_FLAGS}")
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -36,7 +37,11 @@ project(mg_rayApplication)
 
     #adding the executable
     add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${INCLUDES_FILES})
-	target_link_libraries(${PROJECT_NAME} mg_rayLib)
+
+    # Link against libraries
+	target_link_libraries(${PROJECT_NAME} debug mg_rayLib "tbb_debug.lib")
+	target_link_libraries(${PROJECT_NAME} optimized mg_rayLib "tbb.lib")
+
 
 	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 		#specific MSVC CRAP
@@ -53,6 +58,9 @@ project(mg_rayApplication)
                    COMMAND ${CMAKE_COMMAND} -E copy_directory
                        ${CMAKE_SOURCE_DIR}/mg_rayLib/rendering/data $<TARGET_FILE_DIR:mg_rayApplication>)
 
+	add_custom_command(TARGET mg_rayApplication PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/middleware/tbb/lib $<TARGET_FILE_DIR:mg_rayApplication>)
 
 
 

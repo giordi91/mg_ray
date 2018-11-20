@@ -4,7 +4,7 @@
 #include "mg_rayLib/rendering/dxRenderer/dxDebugRenderer.h"
 #endif
 
-#include "mg_rayLib/core/cpuRenderContext.h"
+#include "mg_rayLib/core/CPU/cpuRenderContext.h"
 #include "mg_rayLib/core/scene.h"
 #include <iostream>
 namespace mg_ray {
