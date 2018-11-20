@@ -36,16 +36,21 @@ public:
 private:
   bool m_rangeExtender = false;
   int m_rangeMultiplier = 1;
-  core::GlobalSettings* m_settings;
+  core::GlobalSettings *m_settings;
 };
 
-class RenderingLabel: public UiWidget {
+class RenderingLabel : public UiWidget {
 public:
   RenderingLabel() : UiWidget(){};
+  inline void initialize(core::GlobalSettings *settings) {
+    m_settings = settings;
+  };
   ~RenderingLabel() = default;
 
   void render() override;
 
+private:
+  core::GlobalSettings *m_settings;
 };
 } // namespace dx11
 } // namespace rendering

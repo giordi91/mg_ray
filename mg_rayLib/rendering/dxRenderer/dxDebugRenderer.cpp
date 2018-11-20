@@ -108,6 +108,8 @@ bool Dx11DebugRenderer::initialize(foundation::Input *input,
 
   // initialize ui
   m_renderingWidget.initialize(settings);
+  m_renderingLabel.initialize(settings);
+  //m_renderingLabel.show(true);
   return true;
 }
 
@@ -297,13 +299,10 @@ void Dx11DebugRenderer::setupMaterial(int i) {
 void Dx11DebugRenderer::drawUi() {
   ImGui_ImplDX11_NewFrame();
   // temp imgui
-  ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.0f);
-  {
-    if (showUi) {
-      m_renderingWidget.render();
-    }
-  }
   m_renderingLabel.render();
+  if (showUi) {
+    m_renderingWidget.render();
+  }
   ImGui::Render();
 }
 void Dx11DebugRenderer::handleUiInput() {

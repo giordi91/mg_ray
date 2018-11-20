@@ -28,9 +28,14 @@ void RenderingSettingsWidget::render() {
 }
 void RenderingLabel::render() {
   if (showUi) {
-  ImGui::Begin("Rendering in progress ...", &showUi);
-  ImGui::End();
-
+    ImVec2 size{220.0f, 40.0f};
+    ImVec2 pos{m_settings->width / 2.0f - size.x / 2.0f,
+               m_settings->height / 2.0f - size.y / 2.0f};
+    ImGui::Begin("Rendering in progress", &showUi);
+    ImGui::SetWindowPos(pos);
+    ImGui::SetWindowSize(size);
+    ImGui::SetWindowCollapsed(true);
+    ImGui::End();
   }
 }
 } // namespace dx11
