@@ -187,7 +187,7 @@ void Dx11DebugRenderer::loadTrianglesScene(core::Scene *scene) {
     const core::ScenePolygonMesh &sceneMesh = scene->m_polygonMeshes[i];
     mesh.initFromFlatBufferPosNormalUV8(
         m_d3dClass->getDevice(), sceneMesh.triangles.get(),
-        sceneMesh.triangleCount, m_shader.get());
+        sceneMesh.vertexCount, m_shader.get());
     m_polygonMeshes.emplace_back(
         DebugMesh{mesh, sceneMesh.material, DirectX::XMMatrixIdentity()});
   }

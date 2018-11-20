@@ -31,12 +31,11 @@ bool CPURenderContext::loadScene(Scene *scene) {
     // two things, first extract the positions only and next
     // if multiple geos are provided we need to put them
     // in a single buffer
-    int count = m_scene->m_polygonMeshes[0].triangleCount;
-    std::vector<float> data(count * 3);
-    const float *sourceData = m_scene->m_polygonMeshes[0].triangles.get();
 
     // now that we have the data we can build the bvh
-    m_bvh.init(&m_scene->m_polygonMeshes[0]);
+    // m_bvh.init(&m_scene->m_polygonMeshes[0]);
+    m_bvh.initMulti(m_scene->m_polygonMeshes.data(),
+                    m_scene->m_polygonMeshes.size());
   }
   return true;
 }
@@ -224,6 +223,69 @@ void scatterMaterial(const glm::vec3 &inPos, const glm::vec3 &inRay,
   }
 }
 
+void scatterMaterialPoly(const glm::vec3 &inPos, const glm::vec3 &inRay,
+                         HitRecord *rec, glm::vec3 &outPos, glm::vec3 &outRay,
+                         glm::vec3 &attenuation, PseudoRandom &rnd,
+                         ScenePolygonMesh *meshes) {
+  switch (meshes[rec->hitIndex].material.type) {
+  case (MATERIAL_TYPE::DIFFUSE): {
+    outPos = rec->position;
+    outRay = glm::normalize(rec->normal + randomInUnitSphere(rnd));
+    attenuation = meshes[rec->hitIndex].material.albedo;
+    break;
+  }
+  case (MATERIAL_TYPE::METAL): {
+    outPos = rec->position;
+    outRay = reflect(inRay, rec->normal) +
+             meshes[rec->hitIndex].material.roughness * randomInUnitSphere(rnd);
+    attenuation = meshes[rec->hitIndex].material.albedo;
+    break;
+  }
+  case (MATERIAL_TYPE::DIALECTRIC): {
+
+    float refIdx = 1.5f;
+    glm::vec3 outwardNormal;
+    glm::vec3 reflected = reflect(inRay, rec->normal);
+    attenuation = glm::vec3(1.0f, 1.0f, 1.0f);
+    float ior;
+    float cosine;
+    float reflectProb;
+
+    glm::vec3 refracted;
+
+    if (glm::dot(inRay, rec->normal) > 0) {
+      outwardNormal = -rec->normal;
+      ior = refIdx;
+      cosine = refIdx * glm::dot(inRay, rec->normal) / glm::length(inRay);
+    } else {
+      outwardNormal = rec->normal;
+      ior = 1.0f / refIdx;
+      cosine = -glm::dot(inRay, rec->normal) / glm::length(inRay);
+    }
+
+    if (refract(inRay, outwardNormal, ior, refracted)) {
+      reflectProb = schlick(cosine, refIdx);
+    } else {
+      reflectProb = 1.0f;
+      outPos = rec->position;
+      outRay = reflected;
+    }
+
+    if (rnd.next() < reflectProb) {
+      outPos = rec->position;
+      outRay = reflected;
+    } else {
+      outPos = rec->position;
+      outRay = refracted;
+    }
+    break;
+  }
+  default: {
+    assert(0);
+  }
+  }
+}
+
 void CPURenderContext::renderImplicit() {
 
   int w = m_settings->width;
@@ -313,6 +375,14 @@ void CPURenderContext::renderImplicit() {
     } // column
   }   // rows
 }
+void CPURenderContext::getPolygonNormal(float u, float v, int meshIdx,
+                                        int triangleIdx) {
+
+	const ScenePolygonMesh& mesh = m_scene->m_polygonMeshes[meshIdx];
+	int id1 = triangleIdx * 3;
+
+
+}
 
 void CPURenderContext::renderPolygons() {
 
@@ -337,22 +407,39 @@ void CPURenderContext::renderPolygons() {
     HitRecord rec;
     for (int x = 0; x < w; ++x) {
       int id = (y * w + x) * 4;
+      color = glm::vec3{0.0f, 0.0f, 0.0f};
+      for (int s = 0; s < SPP; ++s) {
+        glm::vec3 attenuation{0.0f, 0.0f, 0.0f};
 
-      getRayInSubPixelWithThinLens(x, y, p, ray, &m_camera, m_settings, rnd);
-      float outT = -1.0f;
-      unsigned int outFaceId = 0;
-      float u, v;
-      bool hit = m_bvh.intersect(p, ray, outT, outFaceId, u, v, false);
-      if (hit) {
-        color.x = 1.0f;
-        color.y = 0.0f;
-        color.z = 0.0f;
-      } else {
-        color = sampleBGTexture(x, y, m_scene->bgTexture);
+        getRayInSubPixelWithThinLens(x, y, p, ray, &m_camera, m_settings, rnd);
+        float outT = -1.0f;
+        unsigned int outFaceId = 0;
+        float u, v;
+        bool hit = m_bvh.intersect(p, ray, outT, outFaceId, u, v, false);
+        if (hit) {
+          // here we multiply by 3 because we are getting back
+          // the triangle hit, internally the bvh needs to know
+          // the vertex index, need to fix that
+          int localTriangleIndex;
+          int meshIdx = m_bvh.getMeshIndex(outFaceId * 3, localTriangleIndex);
+          assert(meshIdx < m_scene->m_polygonMeshes.size());
+          rec.hitIndex = meshIdx;
+          rec.normal = getNormal(u, v, meshIdx, localTriangleIndex);
+          rec.position = p + ray * outT;
+
+          scatterMaterialPoly(p, ray, &rec, posNext, rayNext, attenuation, rnd,
+                              m_scene->m_polygonMeshes.data());
+
+          color.x += m_scene->m_polygonMeshes[meshIdx].material.albedo.x;
+          color.y += m_scene->m_polygonMeshes[meshIdx].material.albedo.y;
+          color.z += m_scene->m_polygonMeshes[meshIdx].material.albedo.z;
+        } else {
+          color += sampleBGTexture(x, y, m_scene->bgTexture);
+        }
       }
-      pixels[id + 0] = color.x;
-      pixels[id + 1] = color.y;
-      pixels[id + 2] = color.z;
+      pixels[id + 0] = color.x / (float)SPP;
+      pixels[id + 1] = color.y / (float)SPP;
+      pixels[id + 2] = color.z / (float)SPP;
     }
   }
 }

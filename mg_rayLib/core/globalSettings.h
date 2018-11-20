@@ -18,7 +18,7 @@ struct GlobalSettings {
   ComputationType computationType = ComputationType::FULL_FRAME;
   char *name = "Renderer 1.0v";
   //rendering settings
-  int SPP = 10;
+  int SPP = 3;
   int maxRecursion = 10;
   float aperture = 0.01f;
   float focusDistance = 10.0f;

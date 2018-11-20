@@ -36,7 +36,7 @@ struct SceneImplicitMesh {
 };
 struct ScenePolygonMesh {
   std::unique_ptr<float[]> triangles;
-  unsigned int triangleCount;
+  unsigned int vertexCount;
   SceneMaterial material;
 };
 

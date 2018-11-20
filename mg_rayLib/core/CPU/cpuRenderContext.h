@@ -29,6 +29,7 @@ public:
 private:
   void renderImplicit();
   void renderPolygons();
+  void getPolygonNormal(float u, float v, int meshIdx, int triangleIdx);
 
 private:
   foundation::Window *m_window = nullptr;

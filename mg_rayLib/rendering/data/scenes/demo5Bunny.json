@@ -14,7 +14,7 @@
     {
       "type": "triangleSoup",
       "triangleData": {
-        "path" :  "geometries/plane.obj"
+        "path" :  "geometries/planeBig.obj"
       },
       "material": {
         "albedo": [ 0.5, 0.5, 0.5 ],

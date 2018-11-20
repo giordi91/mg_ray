@@ -4,10 +4,10 @@
 //#include <ImathVec.h>
 #include "middleware/glm/glm.hpp"
 
+#include "mg_rayLib/core/scene.h"
 #include "middleware/tbb/include/tbb/blocked_range.h"
 #include "middleware/tbb/include/tbb/spin_mutex.h"
 #include <vector>
-#include "mg_rayLib/core/scene.h"
 
 namespace mg_ray {
 namespace core {
@@ -45,8 +45,9 @@ class BVH {
 public:
   BVH() = default;
 
-  //void init(MeshDummy *mesh);
-  void init(ScenePolygonMesh* mesh);
+  // void init(MeshDummy *mesh);
+  void init(ScenePolygonMesh *mesh);
+  void initMulti(ScenePolygonMesh *mesh, int count);
   void clear();
 
   bool intersect(const glm::vec3 &orig, const glm::vec3 &dir, float &param,
@@ -56,13 +57,26 @@ public:
                              const glm::vec3 rayVector, int i,
                              glm::vec3 &outIntersectionPoint,
                              float &param) const;
+  inline int getMeshIndex(int triangleIndex, int &localTriangleIndex) {
+    for (int i = 0; i < m_verticesScan.size() - 1; ++i) {
+      if (triangleIndex < m_verticesScan[i + 1]) {
+        localTriangleIndex = triangleIndex - m_verticesScan[i];
+        return i;
+      }
+    }
+    localTriangleIndex =
+        triangleIndex - m_verticesScan[m_verticesScan.size() - 2];
+    return m_verticesScan.size() - 1;
+  }
 
   std::vector<MortonCode> mortons;
   std::vector<BVHNode> internalNodes;
   std::vector<glm::vec3> treeAABBs;
   std::vector<unsigned int> indices;
   std::vector<glm::vec3> points;
-  //MeshDummy *m_mesh = nullptr;
+
+  // init multi temporary hack
+  std::vector<int> m_verticesScan;
 };
 
 class BuildNodes {

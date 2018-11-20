@@ -537,16 +537,15 @@ bool hasDuplicates(std::vector<MortonCode> &mortons) {
 
 void BVH::init(ScenePolygonMesh *mesh) {
 
-  // m_mesh = mesh;
-  int triangleCount = mesh->triangleCount/3;
-  indices.resize(triangleCount*3);
-  points.resize(mesh->triangleCount);
-  treeAABBs.resize((triangleCount) * 2);
+  int triangleCount = mesh->vertexCount / 3;
+  indices.resize(triangleCount * 3);
+  points.resize(mesh->vertexCount);
+  treeAABBs.resize((triangleCount)*2);
   mortons.resize(triangleCount);
   internalNodes.resize(triangleCount);
 
-  // we now need to copy the data over
-  for (int i = 0; i < triangleCount*3; ++i) {
+  // we now need to copy the data over, the bvh as of now
+  for (int i = 0; i < triangleCount * 3; ++i) {
     glm::vec3 &p = points[i];
     p.x = mesh->triangles[i * 8 + 0];
     p.y = mesh->triangles[i * 8 + 1];
@@ -575,53 +574,61 @@ void BVH::init(ScenePolygonMesh *mesh) {
                                   points.data(), treeAABBs.data()};
   tbb::parallel_for(tbb::blocked_range<size_t>(1, mortons.size() - 1, 100),
                     buildNodesAABBs);
-  // buildTreeAABBs(internalNodes, mortons, treeAABBs, indices, points);
 }
 
-/*
-void BVH::init(MeshDummy *mesh) {
+void BVH::initMulti(ScenePolygonMesh *mesh, int count) {
 
-  m_mesh = mesh;
-  int triangleCount = mesh->indices().size() / 3;
-  const auto &indices = mesh->indices();
-  const auto &points = mesh->points();
-  treeAABBs.resize(triangleCount * 2);
+  m_verticesScan.resize(count);
+  int totalCount = 0;
+  for (int m = 0; m < count; ++m) {
+    totalCount += mesh[m].vertexCount;
+    m_verticesScan[m] = mesh[m].vertexCount;
+  }
+  // perform the exclusive prefix scan
+  int intermediate = m_verticesScan[0];
+  m_verticesScan[0] = 0;
+  for (int m = 1; m < (count - 1); ++m) {
+    m_verticesScan[m] = intermediate;
+	intermediate += m_verticesScan[m + 1];
+  }
+  m_verticesScan[count - 1] = intermediate;
+  //now we know where each mesh start and ends
+  //lets generate a unique buffer
+  int triangleCount = totalCount/3;
+
+  //allocating memory
+  indices.resize(totalCount);
+  points.resize(totalCount);
+  treeAABBs.resize(triangleCount*2);
   mortons.resize(triangleCount);
   internalNodes.resize(triangleCount);
 
+  // we now need to copy the data over, the bvh as of now
+  int counter = 0;
+  for (int m = 0; m < count; ++m)
+  {
+	  int currentVtxCount = mesh[m].vertexCount;
+	  for (int i = 0; i < currentVtxCount; ++i) {
+		  glm::vec3 &p = points[counter];
+		  p.x = mesh[m].triangles[i * 8 + 0];
+		  p.y = mesh[m].triangles[i * 8 + 1];
+		  p.z = mesh[m].triangles[i * 8 + 2];
+
+		  indices[counter] = counter;
+		  counter++;
+	  }
+  }
   auto &minP = treeAABBs[0];
   auto &maxP = treeAABBs[1];
   buildAABB(points, minP, maxP);
-  // tbb::spin_mutex mutex;
-  // BuildRootAABB buildRootAABB{ minP,maxP,points,mutex};
-  // tbb::parallel_for(tbb::blocked_range<size_t>(0, points.size(),
-  // 1000),buildRootAABB);
-
-  // buildCentroids(points, indices, centroids, mortons, centroidsNormalized,
-  // minP,
-  //               maxP);
   BuildCentroids buildCentroids{minP, maxP, &points, &indices, &mortons};
-  tbb::parallel_for(tbb::blocked_range<size_t>(0, triangleCount, 15000),
+  tbb::parallel_for(tbb::blocked_range<size_t>(0, triangleCount, 100),
                     buildCentroids);
 
-  // std::cout << "has duplicates ? " << hasDuplicates(mortons) << std::endl;
-
-  // sorting the mortons
-  // std::sort(mortons.begin(), mortons.end(),
-  //          [](MortonCode &first, MortonCode &second) {
-  //            return first.code < second.code;
-  //          });
   tbb::parallel_sort(mortons.begin(), mortons.end(),
                      [](MortonCode &first, MortonCode &second) {
                        return first.code < second.code;
                      });
-  // splatMeshDummy(m_mesh, mortons, m_outMeshDummy, indices);
-
-  // find split
-  // findSplitRoot(mortons, internalNodes);
-  // for (int i = 0; i < mortons.size() - 1; ++i) {
-  //  findSplit(i, mortons, internalNodes, mortons.size());
-  //}
 
   BuildNodes buildNodes{&mortons, &internalNodes};
   tbb::parallel_for(tbb::blocked_range<size_t>(0, mortons.size() - 1, 100),
@@ -631,26 +638,18 @@ void BVH::init(MeshDummy *mesh) {
                                   points.data(), treeAABBs.data()};
   tbb::parallel_for(tbb::blocked_range<size_t>(1, mortons.size() - 1, 100),
                     buildNodesAABBs);
-  // buildTreeAABBs(internalNodes, mortons, treeAABBs, indices, points);
-}
-*/
 
-inline float max2(float a, float b) {
-  float res = static_cast<float>(a > b);
-  return res * a + (1.0f - res) * b;
+
+
 }
 
-inline float min2(float a, float b) {
-  float res = static_cast<float>(a < b);
-  return res * a + (1.0f - res) * b;
-}
 inline bool intersection(glm::vec3 minP, glm::vec3 maxP, glm::vec3 rayOrigin,
                          glm::vec3 invRayDir) {
   float t1 = (minP[0] - rayOrigin[0]) * invRayDir[0];
   float t2 = (maxP[0] - rayOrigin[0]) * invRayDir[0];
 
-  float tmin = min2(t1, t2);
-  float tmax = max2(t1, t2);
+  float tmin = min(t1, t2);
+  float tmax = max(t1, t2);
 
   for (int i = 1; i < 3; ++i) {
     t1 = (minP[i] - rayOrigin[i]) * invRayDir[i];
@@ -696,9 +695,6 @@ inline bool intersection2(glm::vec3 minP, glm::vec3 maxP, glm::vec3 rayOrigin,
 bool BVH::intersect(const glm::vec3 &rayPosition, const glm::vec3 &rayDir,
                     float &param, unsigned int &outFaceId, float &outU,
                     float &outV, bool bothDirection) const {
-  // bool Kdtree::rayCast(glm::vec3 rayPosition, glm::vec3 rayDirection,
-  //                     float &param, glm::vec3 &hit, int &faceId,
-  //                     std::vector<int> &debugHitAABBs, bool debug) {
 
   auto rayDirection = glm::normalize(rayDir);
   glm::vec3 invRayDir = {
@@ -721,8 +717,8 @@ bool BVH::intersect(const glm::vec3 &rayPosition, const glm::vec3 &rayDir,
     //  checked.insert(i);
     //}
     // TODO fix copy
-    glm::vec3 minP = treeAABBs[i * 2 + 0];
-    glm::vec3 maxP = treeAABBs[i * 2 + 1];
+    const glm::vec3 &minP = treeAABBs[i * 2 + 0];
+    const glm::vec3 &maxP = treeAABBs[i * 2 + 1];
 
     bool intersects = intersection(minP, maxP, rayPosition, invRayDir);
     if (intersects) {
