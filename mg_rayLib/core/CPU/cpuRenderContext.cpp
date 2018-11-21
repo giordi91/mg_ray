@@ -379,7 +379,9 @@ void CPURenderContext::getPolygonNormal(float u, float v, int meshIdx,
                                         int triangleIdx) {
 
 	const ScenePolygonMesh& mesh = m_scene->m_polygonMeshes[meshIdx];
-	int id1 = triangleIdx * 3;
+	int id1 = triangleIdx * 3 +0;
+	int id2 = triangleIdx * 3 +1;
+	int id3 = triangleIdx * 3 +2;
 
 
 }
