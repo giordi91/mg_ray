@@ -65,7 +65,7 @@ public:
       }
     }
     localTriangleIndex =
-        triangleIndex - m_verticesScan[m_verticesScan.size() - 2];
+        triangleIndex - m_verticesScan[m_verticesScan.size() - 1];
     return m_verticesScan.size() - 1;
   }
 

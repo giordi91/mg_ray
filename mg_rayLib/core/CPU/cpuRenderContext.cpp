@@ -375,15 +375,25 @@ void CPURenderContext::renderImplicit() {
     } // column
   }   // rows
 }
-void CPURenderContext::getPolygonNormal(float u, float v, int meshIdx,
-                                        int triangleIdx) {
+glm::vec3 CPURenderContext::getPolygonNormal(float u, float v, int meshIdx,
+                                             int triangleIdx) {
 
-	const ScenePolygonMesh& mesh = m_scene->m_polygonMeshes[meshIdx];
-	int id1 = triangleIdx * 3 +0;
-	int id2 = triangleIdx * 3 +1;
-	int id3 = triangleIdx * 3 +2;
+  const ScenePolygonMesh &mesh = m_scene->m_polygonMeshes[meshIdx];
+  int id1 = (triangleIdx + 0)  * 8;
+  int id2 = (triangleIdx + 1)  * 8;
+  int id3 = (triangleIdx + 2)  * 8;
 
+  auto n1 = glm::vec3{mesh.triangles[id1 + 3], mesh.triangles[id1 + 4],
+                      mesh.triangles[id1 + 5]};
 
+  auto n2 = glm::vec3{mesh.triangles[id2 + 3], mesh.triangles[id2 + 4],
+                      mesh.triangles[id2 + 5]};
+
+  auto n3 = glm::vec3{mesh.triangles[id3 + 3], mesh.triangles[id3 + 4],
+                      mesh.triangles[id3 + 5]};
+
+  float w = 1.0f - u - v;
+  return n1 * u + n2 * v + n3 * w;
 }
 
 void CPURenderContext::renderPolygons() {
@@ -396,7 +406,7 @@ void CPURenderContext::renderPolygons() {
   int maxRecursion = m_settings->maxRecursion;
   float t_min = m_settings->tMin;
   float t_max = m_settings->tMax;
-#pragma omp parallel for
+//#pragma omp parallel for
   for (int y = 0; y < h; ++y) {
     PseudoRandom rnd(y, 324);
     glm::vec3 p;
@@ -426,15 +436,21 @@ void CPURenderContext::renderPolygons() {
           int meshIdx = m_bvh.getMeshIndex(outFaceId * 3, localTriangleIndex);
           assert(meshIdx < m_scene->m_polygonMeshes.size());
           rec.hitIndex = meshIdx;
-          rec.normal = getNormal(u, v, meshIdx, localTriangleIndex);
+          rec.normal = getPolygonNormal(u, v, meshIdx, localTriangleIndex);
           rec.position = p + ray * outT;
 
-          scatterMaterialPoly(p, ray, &rec, posNext, rayNext, attenuation, rnd,
-                              m_scene->m_polygonMeshes.data());
+          // scatterMaterialPoly(p, ray, &rec, posNext, rayNext, attenuation,
+          // rnd,
+          //                    m_scene->m_polygonMeshes.data());
 
-          color.x += m_scene->m_polygonMeshes[meshIdx].material.albedo.x;
-          color.y += m_scene->m_polygonMeshes[meshIdx].material.albedo.y;
-          color.z += m_scene->m_polygonMeshes[meshIdx].material.albedo.z;
+          // color.x += m_scene->m_polygonMeshes[meshIdx].material.albedo.x;
+          // color.y += m_scene->m_polygonMeshes[meshIdx].material.albedo.y;
+          // color.z += m_scene->m_polygonMeshes[meshIdx].material.albedo.z;
+
+          color += rec.normal;
+          // color.x += m_scene->m_polygonMeshes[meshIdx].material.albedo.x;
+          // color.y += m_scene->m_polygonMeshes[meshIdx].material.albedo.y;
+          // color.z += m_scene->m_polygonMeshes[meshIdx].material.albedo.z;
         } else {
           color += sampleBGTexture(x, y, m_scene->bgTexture);
         }
