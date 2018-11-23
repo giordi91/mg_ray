@@ -392,7 +392,7 @@ glm::vec3 CPURenderContext::getPolygonNormal(float u, float v, int meshIdx,
   auto n3 = glm::vec3{mesh.triangles[id3 + 3], mesh.triangles[id3 + 4],
                       mesh.triangles[id3 + 5]};
   float w = 1.0f - u - v;
-  return n1 * u + n2 * v + n3 * w;
+  return glm::normalize(n1 * u + n2 * v + n3 * w);
 }
 
 void CPURenderContext::renderPolygons() {
@@ -423,6 +423,7 @@ void CPURenderContext::renderPolygons() {
         glm::vec3 attenuation{0.0f, 0.0f, 0.0f};
 
         getRayInSubPixelWithThinLens(x, y, p, ray, &m_camera, m_settings, rnd);
+        ray = glm::normalize(ray);
         float outT = -1.0f;
         unsigned int outFaceId = 0;
         float u, v;
@@ -436,10 +437,12 @@ void CPURenderContext::renderPolygons() {
           assert(meshIdx < m_scene->m_polygonMeshes.size());
           rec.hitIndex = meshIdx;
           rec.normal = getPolygonNormal(u, v, meshIdx, localTriangleIndex);
-          rec.position = p + ray * outT;
+          rec.position = p + ray * outT + rec.normal* 0.00001f;
+		  
 
           scatterMaterialPoly(p, ray, &rec, posNext, rayNext, attenuation, rnd,
                               m_scene->m_polygonMeshes.data());
+          rayNext = glm::normalize(rayNext);
           for (int i = 0; i < maxRecursion; ++i) {
             bool hit =
                 m_bvh.intersect(posNext, rayNext, outT, outFaceId, u, v, false);
@@ -447,23 +450,25 @@ void CPURenderContext::renderPolygons() {
               p = posNext;
               ray = rayNext;
               glm::vec3 newAtt{};
-              scatterMaterialPoly(p, ray, &rec, posNext, rayNext, newAtt,
-                                  rnd, m_scene->m_polygonMeshes.data());
-				attenuation *= newAtt;
-				continue;
+			  rec.hitIndex = meshIdx;
+			  rec.normal = getPolygonNormal(u, v, meshIdx, localTriangleIndex);
+			  rec.position = p + ray * outT + rec.normal* 0.00001f;
+
+              scatterMaterialPoly(p, ray, &rec, posNext, rayNext, newAtt, rnd,
+                                  m_scene->m_polygonMeshes.data());
+              attenuation *= newAtt;
+              continue;
+            } else {
+              attenuation *= sampleBGTexture(x, y, m_scene->bgTexture);
+              break;
             }
-			else
-			{
-				attenuation *= sampleBGTexture(x, y, m_scene->bgTexture);
-				break;
-			}
           }
 
           // color.x += m_scene->m_polygonMeshes[meshIdx].material.albedo.x;
           // color.y += m_scene->m_polygonMeshes[meshIdx].material.albedo.y;
           // color.z += m_scene->m_polygonMeshes[meshIdx].material.albedo.z;
 
-          //color += rec.normal;
+          // color += rec.normal;
           // color.x += m_scene->m_polygonMeshes[meshIdx].material.albedo.x;
           // color.y += m_scene->m_polygonMeshes[meshIdx].material.albedo.y;
           // color.z += m_scene->m_polygonMeshes[meshIdx].material.albedo.z;
@@ -471,7 +476,7 @@ void CPURenderContext::renderPolygons() {
           attenuation = sampleBGTexture(x, y, m_scene->bgTexture);
         }
 
-		color += attenuation;
+        color += attenuation;
       }
       pixels[id + 0] = color.x / (float)SPP;
       pixels[id + 1] = color.y / (float)SPP;
