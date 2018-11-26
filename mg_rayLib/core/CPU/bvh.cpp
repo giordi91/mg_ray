@@ -576,6 +576,7 @@ void BVH::init(ScenePolygonMesh *mesh) {
                     buildNodesAABBs);
 }
 
+
 void BVH::initMulti(ScenePolygonMesh *mesh, int count) {
 
   m_verticesScan.resize(count);
@@ -591,6 +592,7 @@ void BVH::initMulti(ScenePolygonMesh *mesh, int count) {
     m_verticesScan[m] = intermediate;
 	intermediate += m_verticesScan[m + 1];
   }
+
   m_verticesScan[count - 1] = intermediate;
   //now we know where each mesh start and ends
   //lets generate a unique buffer

@@ -44,7 +44,6 @@ class BVH {
 
 public:
   BVH() = default;
-
   // void init(MeshDummy *mesh);
   void init(ScenePolygonMesh *mesh);
   void initMulti(ScenePolygonMesh *mesh, int count);
@@ -58,14 +57,22 @@ public:
                              glm::vec3 &outIntersectionPoint,
                              float &param) const;
   inline int getMeshIndex(int triangleIndex, int &localTriangleIndex) {
+    if (m_verticesScan.size() ==1) {
+		//triangleIndex = triangleIndex;
+		localTriangleIndex = triangleIndex;
+		return 0;
+    }
+
     for (int i = 0; i < m_verticesScan.size() - 1; ++i) {
       if (triangleIndex < m_verticesScan[i + 1]) {
         localTriangleIndex = triangleIndex - m_verticesScan[i];
+        assert(localTriangleIndex >= 0);
         return i;
       }
     }
     localTriangleIndex =
         triangleIndex - m_verticesScan[m_verticesScan.size() - 1];
+    assert(localTriangleIndex >= 0);
     return m_verticesScan.size() - 1;
   }
 

@@ -473,6 +473,7 @@ ImGui_ImplDX11_CreateDeviceObjects();
   case WM_MOUSEMOVE: {
     m_input->m_mouse_posX = LOWORD(lparam);
     m_input->m_mouse_posY = HIWORD(lparam);
+	std::cout << "mouse " << m_input->m_mouse_posX << " " << m_input->m_mouse_posY << std::endl;
   }
 
   // Any other messages send to the default message handler as our application

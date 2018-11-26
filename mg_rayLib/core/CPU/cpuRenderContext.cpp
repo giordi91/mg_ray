@@ -348,7 +348,6 @@ void CPURenderContext::renderImplicit() {
                     m_scene->m_implicitMeshes[rec.hitIndex].material.albedo;
                 break;
               }
-
               scatterMaterial(p, ray, &rec, posNext, rayNext, newAtt, rnd,
                               m_scene->m_implicitMeshes.data());
               attenuation *= newAtt;
@@ -375,24 +374,53 @@ void CPURenderContext::renderImplicit() {
     } // column
   }   // rows
 }
-glm::vec3 CPURenderContext::getPolygonNormal(float u, float v, int meshIdx,
-                                             int triangleIdx) {
 
-  const ScenePolygonMesh &mesh = m_scene->m_polygonMeshes[meshIdx];
+glm::vec3 getPolygonNormal(float u, float v, int meshIdx, int triangleIdx,
+                           std::vector<ScenePolygonMesh> &polyMeshes) {
+
+  const ScenePolygonMesh &mesh = polyMeshes[meshIdx];
   int id1 = (triangleIdx + 0) * 8;
   int id2 = (triangleIdx + 1) * 8;
   int id3 = (triangleIdx + 2) * 8;
 
+  assert(triangleIdx < polyMeshes[meshIdx].vertexCount);
+  assert((triangleIdx + 1 )< polyMeshes[meshIdx].vertexCount);
+  assert((triangleIdx + 2 )< polyMeshes[meshIdx].vertexCount);
   auto n1 = glm::vec3{mesh.triangles[id1 + 3], mesh.triangles[id1 + 4],
                       mesh.triangles[id1 + 5]};
 
+  auto p1 = glm::vec3{mesh.triangles[id1 + 0], mesh.triangles[id1 + 1],
+                      mesh.triangles[id1 + 2]};
+
   auto n2 = glm::vec3{mesh.triangles[id2 + 3], mesh.triangles[id2 + 4],
                       mesh.triangles[id2 + 5]};
+  auto p2 = glm::vec3{mesh.triangles[id2 + 0], mesh.triangles[id2 + 1],
+                      mesh.triangles[id2 + 2]};
 
   auto n3 = glm::vec3{mesh.triangles[id3 + 3], mesh.triangles[id3 + 4],
                       mesh.triangles[id3 + 5]};
+
+  auto p3 = glm::vec3{mesh.triangles[id3 + 0], mesh.triangles[id3 + 1],
+                      mesh.triangles[id3 + 2]};
+  auto v1 = p2 - p1;
+  auto v2 = p3 - p1;
+  auto n = glm::normalize(glm::cross(v1, v2));
+  // return n;
+
   float w = 1.0f - u - v;
   return glm::normalize(n1 * u + n2 * v + n3 * w);
+}
+
+inline void updateHitRecord(BVH &bvh, int outFaceId, HitRecord &rec, float u,
+                            float v, glm::vec3 p, glm::vec3 ray, float t,
+                            std::vector<ScenePolygonMesh> &polyMeshes) {
+
+  int localTriangleIndex;
+  int meshIdx = bvh.getMeshIndex(outFaceId * 3, localTriangleIndex);
+  assert(meshIdx < polyMeshes.size());
+  rec.hitIndex = meshIdx;
+  rec.normal = getPolygonNormal(u, v, meshIdx, localTriangleIndex, polyMeshes);
+  rec.position = p + ray * t + rec.normal * 0.00001f;
 }
 
 void CPURenderContext::renderPolygons() {
@@ -429,16 +457,20 @@ void CPURenderContext::renderPolygons() {
         float u, v;
         bool hit = m_bvh.intersect(p, ray, outT, outFaceId, u, v, false);
         if (hit) {
-          // here we multiply by 3 because we are getting back
-          // the triangle hit, internally the bvh needs to know
-          // the vertex index, need to fix that
-          int localTriangleIndex;
-          int meshIdx = m_bvh.getMeshIndex(outFaceId * 3, localTriangleIndex);
-          assert(meshIdx < m_scene->m_polygonMeshes.size());
-          rec.hitIndex = meshIdx;
-          rec.normal = getPolygonNormal(u, v, meshIdx, localTriangleIndex);
-          rec.position = p + ray * outT + rec.normal* 0.00001f;
-		  
+          //// here we multiply by 3 because we are getting back
+          //// the triangle hit, internally the bvh needs to know
+          //// the vertex index, need to fix that
+          // int localTriangleIndex;
+          // int meshIdx = m_bvh.getMeshIndex(outFaceId * 3,
+          // localTriangleIndex); assert(meshIdx <
+          // m_scene->m_polygonMeshes.size()); rec.hitIndex = meshIdx;
+          // rec.normal = getPolygonNormal(u, v, meshIdx, localTriangleIndex);
+          // rec.position = p + ray * outT + rec.normal * 0.00001f;
+          updateHitRecord(m_bvh, outFaceId, rec, u, v, p, ray, outT,
+                          m_scene->m_polygonMeshes);
+		  color += glm::vec3(outT, 0.0f, 0.0f);//rec.normal;
+		  //color += rec.normal;
+          continue;
 
           scatterMaterialPoly(p, ray, &rec, posNext, rayNext, attenuation, rnd,
                               m_scene->m_polygonMeshes.data());
@@ -447,23 +479,37 @@ void CPURenderContext::renderPolygons() {
             bool hit =
                 m_bvh.intersect(posNext, rayNext, outT, outFaceId, u, v, false);
             if (hit) {
+              // if (i == 2) {
+              //  int stop = 0;
+              //  attenuation = glm::vec3(1, 0, 0);
+              //  break;
+              //}
+
               p = posNext;
               ray = rayNext;
               glm::vec3 newAtt{};
-			  rec.hitIndex = meshIdx;
-			  rec.normal = getPolygonNormal(u, v, meshIdx, localTriangleIndex);
-			  rec.position = p + ray * outT + rec.normal* 0.00001f;
+              // int meshIdx =
+              //    m_bvh.getMeshIndex(outFaceId * 3, localTriangleIndex);
+              // assert(meshIdx < m_scene->m_polygonMeshes.size());
+              // rec.hitIndex = meshIdx;
+              // rec.normal = getPolygonNormal(u, v, meshIdx,
+              // localTriangleIndex); rec.position = p + ray * outT + rec.normal
+              // * 0.00001f;
+
+              updateHitRecord(m_bvh, outFaceId, rec, u, v, p, ray, outT,
+                              m_scene->m_polygonMeshes);
 
               scatterMaterialPoly(p, ray, &rec, posNext, rayNext, newAtt, rnd,
                                   m_scene->m_polygonMeshes.data());
               attenuation *= newAtt;
+
+              // attenuation = glm::vec3(1, 0, 0);
               continue;
             } else {
               attenuation *= sampleBGTexture(x, y, m_scene->bgTexture);
               break;
             }
           }
-
           // color.x += m_scene->m_polygonMeshes[meshIdx].material.albedo.x;
           // color.y += m_scene->m_polygonMeshes[meshIdx].material.albedo.y;
           // color.z += m_scene->m_polygonMeshes[meshIdx].material.albedo.z;
