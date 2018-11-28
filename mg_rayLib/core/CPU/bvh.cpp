@@ -323,9 +323,9 @@ void findSplit(int index, const std::vector<MortonCode> &mortons,
     }
   }
   int endRange = index + start * direction;
-  // if (endRange == index) {
-  //  int fuuuck = 0;
-  //}
+   if (endRange == index) {
+	assert(0);
+  }
 
   // now we need to find the split position in the range index and end range
 
@@ -395,9 +395,6 @@ void findSplitRoot(const std::vector<MortonCode> &mortons,
       }
       break;
     }
-  }
-  if (index == 54861 || index == 54862) {
-    int cazzo = 0;
   }
   int endRange = mortonsSize - 1;
   int finalSplit =
@@ -535,6 +532,19 @@ bool hasDuplicates(std::vector<MortonCode> &mortons) {
   return false;
 }
 
+void checkSort(const std::vector<MortonCode> &mortons) {
+
+  for (int i = 0; i < mortons.size() - 1; ++i) {
+    const MortonCode &first = mortons[i];
+    const MortonCode &second = mortons[i + 1];
+    assert(second.code >= first.code && "morton code out of order");
+    if (first.code == second.code) {
+      assert(first.index < second.index &&
+             "index in morton code is out of order");
+    }
+  }
+}
+
 void BVH::init(ScenePolygonMesh *mesh) {
 
   int triangleCount = mesh->vertexCount / 3;
@@ -563,8 +573,12 @@ void BVH::init(ScenePolygonMesh *mesh) {
 
   tbb::parallel_sort(mortons.begin(), mortons.end(),
                      [](MortonCode &first, MortonCode &second) {
+                        if (first.code == second.code) {
+                         return first.index < second.index;
+                       }
                        return first.code < second.code;
                      });
+  checkSort(mortons);
 
   BuildNodes buildNodes{&mortons, &internalNodes};
   tbb::parallel_for(tbb::blocked_range<size_t>(0, mortons.size() - 1, 100),
@@ -575,7 +589,6 @@ void BVH::init(ScenePolygonMesh *mesh) {
   tbb::parallel_for(tbb::blocked_range<size_t>(1, mortons.size() - 1, 100),
                     buildNodesAABBs);
 }
-
 
 void BVH::initMulti(ScenePolygonMesh *mesh, int count) {
 
@@ -590,35 +603,34 @@ void BVH::initMulti(ScenePolygonMesh *mesh, int count) {
   m_verticesScan[0] = 0;
   for (int m = 1; m < (count - 1); ++m) {
     m_verticesScan[m] = intermediate;
-	intermediate += m_verticesScan[m + 1];
+    intermediate += m_verticesScan[m + 1];
   }
 
   m_verticesScan[count - 1] = intermediate;
-  //now we know where each mesh start and ends
-  //lets generate a unique buffer
-  int triangleCount = totalCount/3;
+  // now we know where each mesh start and ends
+  // lets generate a unique buffer
+  int triangleCount = totalCount / 3;
 
-  //allocating memory
+  // allocating memory
   indices.resize(totalCount);
   points.resize(totalCount);
-  treeAABBs.resize(triangleCount*2);
+  treeAABBs.resize(triangleCount * 2);
   mortons.resize(triangleCount);
   internalNodes.resize(triangleCount);
 
   // we now need to copy the data over, the bvh as of now
   int counter = 0;
-  for (int m = 0; m < count; ++m)
-  {
-	  int currentVtxCount = mesh[m].vertexCount;
-	  for (int i = 0; i < currentVtxCount; ++i) {
-		  glm::vec3 &p = points[counter];
-		  p.x = mesh[m].triangles[i * 8 + 0];
-		  p.y = mesh[m].triangles[i * 8 + 1];
-		  p.z = mesh[m].triangles[i * 8 + 2];
+  for (int m = 0; m < count; ++m) {
+    int currentVtxCount = mesh[m].vertexCount;
+    for (int i = 0; i < currentVtxCount; ++i) {
+      glm::vec3 &p = points[counter];
+      p.x = mesh[m].triangles[i * 8 + 0];
+      p.y = mesh[m].triangles[i * 8 + 1];
+      p.z = mesh[m].triangles[i * 8 + 2];
 
-		  indices[counter] = counter;
-		  counter++;
-	  }
+      indices[counter] = counter;
+      counter++;
+    }
   }
   auto &minP = treeAABBs[0];
   auto &maxP = treeAABBs[1];
@@ -629,8 +641,12 @@ void BVH::initMulti(ScenePolygonMesh *mesh, int count) {
 
   tbb::parallel_sort(mortons.begin(), mortons.end(),
                      [](MortonCode &first, MortonCode &second) {
+                       if (first.code == second.code) {
+                         return first.index < second.index;
+                       }
                        return first.code < second.code;
                      });
+  checkSort(mortons);
 
   BuildNodes buildNodes{&mortons, &internalNodes};
   tbb::parallel_for(tbb::blocked_range<size_t>(0, mortons.size() - 1, 100),
@@ -640,9 +656,6 @@ void BVH::initMulti(ScenePolygonMesh *mesh, int count) {
                                   points.data(), treeAABBs.data()};
   tbb::parallel_for(tbb::blocked_range<size_t>(1, mortons.size() - 1, 100),
                     buildNodesAABBs);
-
-
-
 }
 
 inline bool intersection(glm::vec3 minP, glm::vec3 maxP, glm::vec3 rayOrigin,
@@ -709,15 +722,15 @@ bool BVH::intersect(const glm::vec3 &rayPosition, const glm::vec3 &rayDir,
   std::vector<int> indicesToIntersect;
   indicesToIntersect.reserve(30);
   toCheck.push(0);
-  // std::unordered_set<int> checked;
+  std::unordered_set<int> checked;
 
   while (!toCheck.empty()) {
     int i = toCheck.front();
-    // if (checked.find(i) != checked.end()) {
-    //  int fuck = 0;
-    //} else {
-    //  checked.insert(i);
-    //}
+     if (checked.find(i) != checked.end()) {
+	  assert(0);
+    } else {
+      checked.insert(i);
+    }
     // TODO fix copy
     const glm::vec3 &minP = treeAABBs[i * 2 + 0];
     const glm::vec3 &maxP = treeAABBs[i * 2 + 1];

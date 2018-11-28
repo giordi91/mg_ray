@@ -468,8 +468,8 @@ void CPURenderContext::renderPolygons() {
           // rec.position = p + ray * outT + rec.normal * 0.00001f;
           updateHitRecord(m_bvh, outFaceId, rec, u, v, p, ray, outT,
                           m_scene->m_polygonMeshes);
-		  color += glm::vec3(outT, 0.0f, 0.0f);//rec.normal;
-		  //color += rec.normal;
+		  //color += glm::vec3(outT, 0.0f, 0.0f);//rec.normal;
+		  color += rec.normal;
           continue;
 
           scatterMaterialPoly(p, ray, &rec, posNext, rayNext, attenuation, rnd,
